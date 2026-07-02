@@ -20,7 +20,7 @@
 - Create `Sources/MdingApp/RootView.swift`: adaptive navigation shell.
 - Create `Sources/MdingApp/WorkspaceBrowserView.swift`: recursive browser with create/delete/rename/move commands.
 - Create `Sources/MdingApp/MarkdownDocumentView.swift`: preview/edit toggle and save flow.
-- Create `Tests/MdingCoreTests/FileSystemWorkspaceTests.swift`: filesystem behavior tests in a temporary directory.
+- Create `Sources/MdingCoreSmokeTests/main.swift`: filesystem behavior smoke tests in a temporary directory.
 
 ### Task 1: SwiftPM Package Skeleton
 
@@ -89,16 +89,24 @@ Expected: exit code 0.
 
 **Files:**
 - Create: `Sources/MdingCore/FileSystemWorkspace.swift`
-- Create: `Tests/MdingCoreTests/FileSystemWorkspaceTests.swift`
+- Create: `Sources/MdingCoreSmokeTests/main.swift`
 
 - [ ] **Step 1: Add tests for workspace file operations**
 
 ```swift
 import Foundation
-import Testing
-@testable import MdingCore
+import MdingCore
 
-@Test func workspaceCreatesReadsWritesRenamesMovesAndDeletesMarkdownFiles() throws {
+@main
+@MainActor
+struct MdingCoreSmokeTests {
+    static func main() throws {
+        try workspaceCreatesReadsWritesRenamesMovesAndDeletesMarkdownFiles()
+        print("MdingCoreSmokeTests passed")
+    }
+}
+
+func workspaceCreatesReadsWritesRenamesMovesAndDeletesMarkdownFiles() throws {
     let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
 
@@ -108,15 +116,21 @@ import Testing
     try workspace.createMarkdownFile(named: "First.md", in: "Notes")
     try workspace.writeMarkdown("# Hello", to: "Notes/First.md")
 
-    #expect(try workspace.readMarkdown(at: "Notes/First.md") == "# Hello")
+    guard try workspace.readMarkdown(at: "Notes/First.md") == "# Hello" else {
+        fatalError("Markdown body should round-trip")
+    }
 
     try workspace.renameItem(at: "Notes/First.md", to: "Second.md")
     try workspace.moveItem(at: "Notes/Second.md", toFolder: "")
     try workspace.deleteItem(at: "Second.md")
 
     let nodes = try workspace.loadTree()
-    #expect(nodes.contains { $0.name == "Notes" })
-    #expect(!nodes.contains { $0.name == "Second.md" })
+    guard nodes.contains(where: { $0.name == "Notes" }) else {
+        fatalError("Notes folder should remain")
+    }
+    guard !nodes.contains(where: { $0.name == "Second.md" }) else {
+        fatalError("Deleted file should not remain")
+    }
 }
 ```
 
@@ -126,7 +140,7 @@ Implement a `FileSystemWorkspace` that resolves all relative paths under the wor
 
 - [ ] **Step 3: Verify tests**
 
-Run: `swift test`
+Run: `swift run MdingCoreSmokeTests`
 
 Expected: exit code 0.
 
@@ -134,12 +148,12 @@ Expected: exit code 0.
 
 **Files:**
 - Create: `Sources/MdingCore/WorkspaceStore.swift`
-- Modify: `Tests/MdingCoreTests/FileSystemWorkspaceTests.swift`
+- Modify: `Sources/MdingCoreSmokeTests/main.swift`
 
 - [ ] **Step 1: Add store behavior test**
 
 ```swift
-@Test @MainActor func storeSelectsAndSavesMarkdownFiles() throws {
+private static func storeSelectsAndSavesMarkdownFiles() throws {
     let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
 
@@ -151,7 +165,7 @@ Expected: exit code 0.
     store.editBuffer = "Body"
     store.saveSelectedFile()
 
-    #expect(try workspace.readMarkdown(at: "Untitled.md") == "Body")
+    try expect(try workspace.readMarkdown(at: "Untitled.md") == "Body", "Store save should write selected Markdown")
 }
 ```
 
@@ -161,7 +175,7 @@ Implement `WorkspaceStore` with published `nodes`, `selectedPath`, `selectedText
 
 - [ ] **Step 3: Verify tests**
 
-Run: `swift test`
+Run: `swift run MdingCoreSmokeTests`
 
 Expected: exit code 0.
 
@@ -202,7 +216,7 @@ Expected: exit code 0.
 
 - [ ] **Step 1: Record verification**
 
-Document the `swift test`, `swift build`, and current `xcodebuild -version` result.
+Document the `swift run MdingCoreSmokeTests`, `swift build`, and current `xcodebuild -version` result.
 
 - [ ] **Step 2: Commit implementation**
 
