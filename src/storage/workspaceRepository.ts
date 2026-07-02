@@ -8,6 +8,7 @@ import {
   type WorkspaceNode,
 } from "../domain/workspace"
 import { type MdingDatabase, openWorkspaceDatabase } from "./database"
+import { WELCOME_MARKDOWN } from "./sampleWorkspace"
 
 export type WorkspaceRepository = {
   readonly seedIfEmpty: () => Promise<void>
@@ -50,7 +51,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
     }
     const document = {
       id: welcomeId,
-      markdown: "# Welcome to mding\n\nCreate folders and Markdown files, then edit offline.",
+      markdown: WELCOME_MARKDOWN,
       updatedAt: now,
     }
 

@@ -56,6 +56,24 @@ corepack pnpm qa:visual
 
 ## Storage Model
 
-Workspace data is stored in browser-local IndexedDB. Use the workspace export button for backups, especially before clearing browser data or switching devices.
+Workspace data is stored in the installed browser app's local IndexedDB:
+
+- iOS/iPadOS Safari home-screen apps use Safari-managed website storage for that installed web app.
+- macOS Safari web apps use Safari-managed website storage for that web app.
+- macOS Chrome/Edge PWAs use that browser profile's app storage.
+
+This makes editing and reading local documents work offline after installation, but it is still browser-managed storage rather than a user-visible folder. Use the workspace export button for backups, especially before clearing browser data, deleting the installed app, reinstalling the OS, or switching devices.
+
+Current backup flow:
+
+- `Export` downloads the whole workspace as a JSON backup.
+- `Import backup` restores that JSON backup into the app-local workspace.
+- Individual Markdown files can still be imported/exported separately.
+
+Future backup options worth considering:
+
+- Reminder-based manual backup prompts after meaningful edits.
+- Zip backup with Markdown files plus an `assets/` folder.
+- Optional file-system folder sync on browsers that support the File System Access API.
 
 Mermaid support is loaded only when a document contains a `mermaid` fenced code block. Syntax highlighting is also loaded on demand for common code fence languages. These chunks are still included in the PWA cache so rendered documents work offline after installation.
