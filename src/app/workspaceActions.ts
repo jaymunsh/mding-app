@@ -8,7 +8,7 @@ import {
   downloadBlob,
   formatBackupDate,
   parseMarkdownFiles,
-  parseWorkspaceBackup,
+  parseWorkspaceBackupFile,
   requestPersistentStorage,
 } from "../storage/importExport"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
@@ -216,7 +216,7 @@ export async function importWorkspaceFile(
   file: File,
 ): Promise<void> {
   await withError(setState, async () => {
-    const snapshot = parseWorkspaceBackup(await file.text())
+    const snapshot = await parseWorkspaceBackupFile(file)
     await repository.importSnapshot(snapshot)
     const nodes = await repository.listNodes()
     setState((current) => ({ ...current, nodes, selectedId: null, selectedDocument: null }))
@@ -242,7 +242,7 @@ export async function exportWorkspace(
       nodes: await repository.listNodes(),
       documents: await repository.listDocuments(),
     }
-    downloadBlob(createWorkspaceBackupBlob(snapshot), `mding-${formatBackupDate(new Date())}.json`)
+    downloadBlob(createWorkspaceBackupBlob(snapshot), `mding-${formatBackupDate(new Date())}.zip`)
   })
 }
 

@@ -84,10 +84,10 @@ export function App() {
             className="toolbar-button primary"
             type="button"
             onClick={workspace.exportWorkspace}
-            aria-label="Export"
+            aria-label="Export backup"
           >
             <Download size={17} aria-hidden="true" />
-            <span>Export</span>
+            <span>Backup</span>
           </button>
           <fieldset className="theme-switcher">
             <legend>Theme</legend>
@@ -161,7 +161,7 @@ export function App() {
         className="hidden-input"
         type="file"
         aria-label="Import workspace backup"
-        accept="application/json,.json"
+        accept="application/zip,application/json,.zip,.json"
         onChange={(event) => {
           const file = event.currentTarget.files?.item(0)
           if (file !== null && file !== undefined) {

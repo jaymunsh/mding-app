@@ -36,7 +36,7 @@ mding aims for the practical Notion/Obsidian-style Markdown surface needed for p
 - Diagrams: fenced `mermaid` blocks with light/dark theme-aware rendering.
 - Callouts: Obsidian-style `[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!DANGER]`, `[!QUOTE]`, and related variants.
 - Folded callouts: `> [!NOTE]+` opens by default and `> [!NOTE]-` starts collapsed.
-- Images: Markdown image syntax for remote URLs, embedded data URLs, and paths that the browser can resolve.
+- Images: Markdown image syntax for remote URLs, embedded data URLs, and paths that the browser can resolve. mding does not currently manage local image attachments as separate app assets.
 - Emoji: rendered as normal Unicode text.
 
 This is not trying to clone every Notion database or Obsidian plugin feature. It focuses on portable Markdown files plus a few high-value reader effects.
@@ -54,14 +54,15 @@ This makes editing and reading local documents work offline after installation, 
 
 Current backup flow:
 
-- `Export` downloads the whole workspace as a JSON backup.
-- `Import backup` restores that JSON backup into the app-local workspace.
+- `Backup` downloads the whole workspace as a zip file.
+- The zip contains `manifest.json` for exact app restore plus readable `.md` files under `workspace/`.
+- `Import backup` restores mding zip backups and older JSON backups into the app-local workspace.
 - Individual Markdown files can still be imported/exported separately.
 
 Future backup options worth considering:
 
 - Reminder-based manual backup prompts after meaningful edits.
-- Zip backup with Markdown files plus an `assets/` folder.
+- Optional local image attachment management with an `assets/` folder.
 - Optional file-system folder sync on browsers that support the File System Access API.
 
 ## Install As A PWA

@@ -23,7 +23,7 @@ Use **bold**, *italic*, ~~strikethrough~~, inline \`code\`, links like [Vercel](
 - [x] CommonMark and GFM
 - [x] Obsidian-style callouts
 - [x] Mermaid diagrams
-- [ ] Local image attachment management
+- [ ] Local image attachment management is intentionally out of scope for now
 
 ## Table
 

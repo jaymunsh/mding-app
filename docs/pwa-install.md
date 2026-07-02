@@ -72,4 +72,6 @@ The app shell should open and previously stored workspace data should still be a
 
 ## Backup Habit
 
-PWA local storage is durable enough for personal use, but it is still browser-managed storage. Use Export to create a workspace backup file before browser resets, OS reinstalls, or device changes.
+PWA local storage is durable enough for personal use, but it is still browser-managed storage. Use Backup to create a workspace zip before browser resets, OS reinstalls, or device changes.
+
+The zip includes `manifest.json` for exact app restore and readable Markdown files under `workspace/`. mding can still restore older JSON backups through Import backup.

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
   createSnapshotFromMarkdown,
+  createWorkspaceBackupBlob,
   formatBackupDate,
   parseMarkdownFiles,
-  parseWorkspaceBackup,
+  parseWorkspaceBackupFile,
+  parseWorkspaceBackupJson,
+  readStoredZipEntryNames,
 } from "./importExport"
 
 describe("workspace import and export helpers", () => {
@@ -29,10 +32,37 @@ describe("workspace import and export helpers", () => {
     expect(snapshot.documents[0]?.markdown).toBe("# Hello")
   })
 
-  it("parses workspace backups at the input boundary", () => {
+  it("parses legacy JSON workspace backups at the input boundary", () => {
     const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
 
-    expect(parseWorkspaceBackup(JSON.stringify(snapshot))).toEqual(snapshot)
+    expect(parseWorkspaceBackupJson(JSON.stringify(snapshot))).toEqual(snapshot)
+  })
+
+  it("creates zip backups with a manifest and Markdown files", async () => {
+    const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
+
+    const blob = createWorkspaceBackupBlob(snapshot)
+    const names = readStoredZipEntryNames(await blob.arrayBuffer())
+
+    expect(blob.type).toBe("application/zip")
+    expect(names).toEqual(["manifest.json", "workspace/hello.md"])
+  })
+
+  it("restores workspace snapshots from zip backups", async () => {
+    const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
+    const blob = createWorkspaceBackupBlob(snapshot)
+    const file = new File([blob], "mding-backup.zip", { type: "application/zip" })
+
+    await expect(parseWorkspaceBackupFile(file)).resolves.toEqual(snapshot)
+  })
+
+  it("still restores workspace snapshots from legacy JSON backup files", async () => {
+    const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
+    const file = new File([JSON.stringify(snapshot)], "mding-backup.json", {
+      type: "application/json",
+    })
+
+    await expect(parseWorkspaceBackupFile(file)).resolves.toEqual(snapshot)
   })
 
   it("formats backup filenames with stable calendar dates", () => {
