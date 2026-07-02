@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>mding app icon</title>
+  <rect width="512" height="512" rx="112" fill="#2F6F5E" />
+  <path
+    d="M136 148h240c22.1 0 40 17.9 40 40v136c0 22.1-17.9 40-40 40H136c-22.1 0-40-17.9-40-40V188c0-22.1 17.9-40 40-40Z"
+    fill="#F7F7F4"
+  />
+  <path d="M150 207h122v34H150v-34Zm0 64h212v34H150v-34Z" fill="#2F6F5E" />
+  <path d="m309 207 27 37 27-37h-27v98h-28v-98h-27Z" fill="#181916" />
+</svg>

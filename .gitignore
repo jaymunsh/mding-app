@@ -1,7 +1,9 @@
+node_modules/
+dist/
+coverage/
 .build/
-.swiftpm/
 .codegraph
-DerivedData/
-*.xcuserstate
-*.xcworkspace/xcuserdata/
-*.xcodeproj/xcuserdata/
+.DS_Store
+*.local
+playwright-report/
+test-results/

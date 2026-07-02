@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="A local-first Markdown workspace for iOS, iPadOS, and macOS."
+    />
+    <meta name="theme-color" content="#f7f7f4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="mding" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <style>
+      #root {
+        min-height: 100dvh;
+      }
+
+      .boot-shell {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        color: #181916;
+        background: #f7f7f4;
+        font: 650 18px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .boot-shell {
+          color: #f3f4ed;
+          background: #111210;
+        }
+      }
+    </style>
+    <title>mding</title>
+  </head>
+  <body>
+    <div id="root"><div class="boot-shell">mding</div></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

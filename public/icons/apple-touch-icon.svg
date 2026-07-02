@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <title>mding touch icon</title>
+  <rect width="180" height="180" rx="40" fill="#2F6F5E" />
+  <path
+    d="M48 52h84c7.7 0 14 6.3 14 14v48c0 7.7-6.3 14-14 14H48c-7.7 0-14-6.3-14-14V66c0-7.7 6.3-14 14-14Z"
+    fill="#F7F7F4"
+  />
+  <path d="M53 73h43v12H53V73Zm0 23h75v12H53V96Z" fill="#2F6F5E" />
+  <path d="m109 73 9 13 10-13h-10v35h-10V73h-10Z" fill="#181916" />
+</svg>
