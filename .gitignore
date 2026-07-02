@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.build/
+.codegraph
+.DS_Store
+*.local
+playwright-report/
+test-results/
