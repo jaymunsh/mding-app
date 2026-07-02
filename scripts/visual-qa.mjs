@@ -39,6 +39,14 @@ async function verifyScrollingAndTheme() {
   if (lightTheme.theme !== "light" || lightTheme.colorScheme !== "light") {
     throw new Error("Light theme did not apply after selecting the light theme button.")
   }
+  await page.getByRole("button", { name: "Use dark theme" }).click()
+  const darkTheme = await page.evaluate(() => ({
+    theme: document.documentElement.getAttribute("data-theme"),
+    colorScheme: getComputedStyle(document.documentElement).colorScheme,
+  }))
+  if (darkTheme.theme !== "dark" || darkTheme.colorScheme !== "dark") {
+    throw new Error("Dark theme did not apply before renderer checks.")
+  }
 
   const longMarkdown = Array.from(
     { length: 90 },
@@ -47,6 +55,8 @@ async function verifyScrollingAndTheme() {
   const markdown = `# Renderer check
 
 **Bold text**
+
+Inline \`code\`
 
 ![Inline image](/icons/pwa-192x192.png)
 
@@ -81,6 +91,26 @@ ${longMarkdown}`
   await page.locator("details.markdown-callout-warning", { hasText: "Folded warning" }).waitFor()
   await page.locator(".shiki-code").waitFor()
   await page.locator(".mermaid-diagram svg").waitFor()
+  const inlineCodeStyle = await page
+    .locator(".markdown-body p code")
+    .first()
+    .evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+      }
+    })
+  if (inlineCodeStyle.background === "rgba(0, 0, 0, 0)") {
+    throw new Error("Inline code does not have a visible background.")
+  }
+  const mermaidTextFill = await page
+    .locator(".mermaid-diagram svg")
+    .first()
+    .evaluate((element) => getComputedStyle(element).fill)
+  if (mermaidTextFill === "rgb(0, 0, 0)" || mermaidTextFill === "rgba(0, 0, 0, 0)") {
+    throw new Error(`Mermaid text fill is not readable in dark mode: ${mermaidTextFill}.`)
+  }
 
   const preview = page.locator(".markdown-preview")
   const canScroll = await preview.evaluate((element) => element.scrollHeight > element.clientHeight)

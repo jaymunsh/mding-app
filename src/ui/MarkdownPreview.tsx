@@ -21,6 +21,7 @@ type MermaidDiagramProps = {
 }
 
 type MermaidApi = typeof import("mermaid").default
+type MermaidColorMode = "dark" | "light"
 
 const CALLOUT_LABELS = {
   bug: "Bug",
@@ -426,6 +427,7 @@ function loadShiki(): Promise<ShikiHighlighter> {
 
 function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const id = useStableMermaidId()
+  const colorMode = useMermaidColorMode()
   const containerRef = useRef<HTMLDivElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -435,7 +437,8 @@ function MermaidDiagram({ chart }: MermaidDiagramProps) {
     async function renderDiagram(): Promise<void> {
       try {
         const mermaid = await loadMermaid()
-        const { svg } = await mermaid.render(id, chart)
+        mermaid.initialize(createMermaidConfig(colorMode))
+        const { svg } = await mermaid.render(`${id}-${colorMode}`, chart)
         if (!cancelled && containerRef.current !== null) {
           containerRef.current.innerHTML = svg
           setErrorMessage(null)
@@ -452,7 +455,7 @@ function MermaidDiagram({ chart }: MermaidDiagramProps) {
     return () => {
       cancelled = true
     }
-  }, [chart, id])
+  }, [chart, colorMode, id])
 
   if (errorMessage !== null) {
     return (
@@ -470,15 +473,70 @@ function MermaidDiagram({ chart }: MermaidDiagramProps) {
 function loadMermaid(): Promise<MermaidApi> {
   if (mermaidApiPromise === null) {
     mermaidApiPromise = import("mermaid").then((module) => {
-      module.default.initialize({
-        startOnLoad: false,
-        securityLevel: "strict",
-        theme: "base",
-      })
+      module.default.initialize(createMermaidConfig(readMermaidColorMode()))
       return module.default
     })
   }
   return mermaidApiPromise
+}
+
+function createMermaidConfig(colorMode: MermaidColorMode) {
+  const isDark = colorMode === "dark"
+
+  return {
+    startOnLoad: false,
+    securityLevel: "strict",
+    theme: "base",
+    themeVariables: {
+      background: isDark ? "#0c0d0b" : "#ffffff",
+      darkMode: isDark,
+      edgeLabelBackground: isDark ? "#191a17" : "#ffffff",
+      lineColor: isDark ? "#a9ada1" : "#65685f",
+      mainBkg: isDark ? "#191a17" : "#ffffff",
+      nodeBorder: isDark ? "#60b49d" : "#2f6f5e",
+      nodeTextColor: isDark ? "#f3f4ed" : "#181916",
+      primaryBorderColor: isDark ? "#60b49d" : "#2f6f5e",
+      primaryColor: isDark ? "#1f3f37" : "#e8f3ee",
+      primaryTextColor: isDark ? "#f3f4ed" : "#181916",
+      secondaryColor: isDark ? "#22231f" : "#efefeb",
+      tertiaryColor: isDark ? "#111210" : "#f7f7f4",
+      textColor: isDark ? "#f3f4ed" : "#181916",
+    },
+  } as const
+}
+
+function useMermaidColorMode(): MermaidColorMode {
+  const [colorMode, setColorMode] = useState(readMermaidColorMode)
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)")
+    const updateColorMode = () => setColorMode(readMermaidColorMode())
+    const observer = new MutationObserver(updateColorMode)
+
+    observer.observe(document.documentElement, {
+      attributeFilter: ["data-theme"],
+      attributes: true,
+    })
+    media.addEventListener("change", updateColorMode)
+
+    return () => {
+      observer.disconnect()
+      media.removeEventListener("change", updateColorMode)
+    }
+  }, [])
+
+  return colorMode
+}
+
+function readMermaidColorMode(): MermaidColorMode {
+  const theme = document.documentElement.getAttribute("data-theme")
+  if (theme === "dark") {
+    return "dark"
+  }
+  if (theme === "light") {
+    return "light"
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 }
 
 function useStableMermaidId(): string {
