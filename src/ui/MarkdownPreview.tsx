@@ -517,7 +517,7 @@ function normalizeFlowchartTrailingNote(line: string): string {
   return `${source}${connector}|${note}|${spacing}${target}`
 }
 
-function createMermaidConfig(colorMode: MermaidColorMode) {
+export function createMermaidConfig(colorMode: MermaidColorMode) {
   const isDark = colorMode === "dark"
 
   return {
@@ -525,7 +525,7 @@ function createMermaidConfig(colorMode: MermaidColorMode) {
     securityLevel: "strict",
     theme: "base",
     themeVariables: {
-      background: isDark ? "#0c0d0b" : "#ffffff",
+      background: "transparent",
       darkMode: isDark,
       edgeLabelBackground: isDark ? "#191a17" : "#ffffff",
       lineColor: isDark ? "#a9ada1" : "#65685f",

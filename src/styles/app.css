@@ -1201,6 +1201,22 @@ details.markdown-callout > summary::marker {
   color: var(--text-primary);
 }
 
+.markdown-body pre:has(.mermaid-diagram),
+.markdown-body pre:has(.mermaid-error) {
+  overflow: visible;
+  margin: var(--space-4) 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.markdown-body pre > .mermaid-diagram,
+.markdown-body pre > .mermaid-error {
+  margin: 0;
+}
+
 .markdown-body blockquote {
   margin-left: 0;
   padding-left: var(--space-4);

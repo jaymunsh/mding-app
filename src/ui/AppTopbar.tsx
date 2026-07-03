@@ -19,7 +19,7 @@ import {
 } from "../app/i18n"
 import { ThemePreference } from "../app/theme"
 
-export const APP_VERSION = "v0.13"
+export const APP_VERSION = "v1.0"
 
 type AppTopbarProps = {
   readonly appLanguage: AppLanguage

@@ -6,7 +6,7 @@ import {
   type WorkspaceNode,
 } from "../domain/workspace"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
-import { moveNodes } from "./workspaceActions"
+import { deleteNodes, moveNodes } from "./workspaceActions"
 import { type ControllerState, initialState, type StateSetter } from "./workspaceState"
 
 describe("workspace actions", () => {
@@ -38,6 +38,33 @@ describe("workspace actions", () => {
       { ...first, parentId: folder.id, updatedAt: Date.now() },
       { ...second, parentId: folder.id, updatedAt: Date.now() },
     ])
+  })
+
+  it("deletes multiple selected nodes and folder descendants", async () => {
+    const folder = node(NodeKind.Folder, "Notes", null)
+    const nested = node(NodeKind.File, "Nested.md", folder.id)
+    const sibling = node(NodeKind.File, "Sibling.md", null)
+    const untouched = node(NodeKind.File, "Untouched.md", null)
+    const repository = createMemoryRepository([folder, nested, sibling, untouched])
+    let state: ControllerState = {
+      ...initialState,
+      nodes: [folder, nested, sibling, untouched],
+      selectedId: nested.id,
+    }
+    const setState: StateSetter = (update) => {
+      state = typeof update === "function" ? update(state) : update
+    }
+
+    await deleteNodes({
+      repository,
+      setState,
+      nodes: state.nodes,
+      selectedIds: [folder.id, sibling.id],
+    })
+
+    expect(state.errorMessage).toBeNull()
+    expect(state.nodes).toEqual([untouched])
+    expect(state.selectedId).toBeNull()
   })
 })
 

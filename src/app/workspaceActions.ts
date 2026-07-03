@@ -41,6 +41,13 @@ type MoveNodesRequest = {
   readonly parentId: NodeId | null
 }
 
+type DeleteNodesRequest = {
+  readonly repository: WorkspaceRepository
+  readonly setState: StateSetter
+  readonly nodes: readonly WorkspaceNode[]
+  readonly selectedIds: readonly NodeId[]
+}
+
 export async function initializeWorkspace(
   repository: WorkspaceRepository,
   setState: StateSetter,
@@ -196,18 +203,29 @@ export async function deleteSelected(
   nodes: readonly WorkspaceNode[],
   selectedId: NodeId | null,
 ): Promise<void> {
-  if (selectedId === null) {
-    setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
+  const selectedIds = selectedId === null ? [] : [selectedId]
+  await deleteNodes({ repository, setState, nodes, selectedIds })
+}
+
+export async function deleteNodes(request: DeleteNodesRequest): Promise<void> {
+  if (request.selectedIds.length === 0) {
+    request.setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
     return
   }
 
-  await withError(setState, async () => {
-    for (const id of collectDescendantIds(nodes, selectedId)) {
-      await repository.deleteNode(id)
+  await withError(request.setState, async () => {
+    const idsToDelete = new Set<NodeId>()
+    for (const selectedId of request.selectedIds) {
+      idsToDelete.add(selectedId)
+      for (const descendantId of collectDescendantIds(request.nodes, selectedId)) {
+        idsToDelete.add(descendantId)
+      }
     }
-    await repository.deleteNode(selectedId)
-    const refreshedNodes = await repository.listNodes()
-    setState((current) => ({
+    for (const id of idsToDelete) {
+      await request.repository.deleteNode(id)
+    }
+    const refreshedNodes = await request.repository.listNodes()
+    request.setState((current) => ({
       ...current,
       nodes: refreshedNodes,
       selectedId: null,

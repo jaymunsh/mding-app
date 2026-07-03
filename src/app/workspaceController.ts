@@ -9,6 +9,7 @@ import { openLaunchedDocumentFiles } from "./fileLaunchActions"
 import {
   createItem,
   deleteSelected,
+  deleteNodes as deleteWorkspaceNodes,
   initializeWorkspace,
   moveSelected,
   moveNodes as moveWorkspaceNodes,
@@ -47,6 +48,7 @@ export type WorkspaceController = {
   readonly createFolder: () => Promise<void>
   readonly renameSelected: (name: string) => Promise<void>
   readonly deleteSelected: () => Promise<void>
+  readonly deleteNodes: (ids: readonly NodeId[]) => Promise<void>
   readonly moveSelectedToRoot: () => Promise<void>
   readonly moveSelectedToFolder: (id: NodeId) => Promise<void>
   readonly moveNodesToRoot: (ids: readonly NodeId[]) => Promise<void>
@@ -135,6 +137,13 @@ export function useWorkspaceController(): WorkspaceController {
       }),
     renameSelected: (name) => renameSelected(repository, setState, state.selectedId, name),
     deleteSelected: () => deleteSelected(repository, setState, state.nodes, state.selectedId),
+    deleteNodes: (ids) =>
+      deleteWorkspaceNodes({
+        repository,
+        setState,
+        nodes: state.nodes,
+        selectedIds: ids,
+      }),
     moveSelectedToRoot: () =>
       moveSelected({
         repository,

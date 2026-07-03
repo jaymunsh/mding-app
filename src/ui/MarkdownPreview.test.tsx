@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import {
+  createMermaidConfig,
   MarkdownPreview,
   normalizeMermaidChart,
   parseCalloutMarker,
@@ -46,6 +47,11 @@ describe("Markdown preview", () => {
     expect(normalizeMermaidChart(chart)).toBe(`flowchart TD
   A -->|note observe-only 저장| B
   B -->|note 회고 저장| C[Reviewer]`)
+  })
+
+  it("keeps Mermaid SVG canvas transparent so the preview has one visible background", () => {
+    expect(createMermaidConfig("dark").themeVariables.background).toBe("transparent")
+    expect(createMermaidConfig("light").themeVariables.background).toBe("transparent")
   })
 
   it("parses Obsidian callout markers and fold states", () => {
