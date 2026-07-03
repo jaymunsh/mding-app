@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { ThemePreference } from "../app/theme"
 
-const APP_VERSION = "v0.8"
+const APP_VERSION = "v0.10"
 
 type AppTopbarProps = {
   readonly storagePersisted: boolean

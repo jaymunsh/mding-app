@@ -485,8 +485,36 @@ export async function renderMermaidSvg(
 ): Promise<string> {
   const mermaid = await loadMermaid()
   mermaid.initialize(createMermaidConfig(colorMode))
-  const { svg } = await mermaid.render(id, chart)
+  const { svg } = await mermaid.render(id, normalizeMermaidChart(chart))
   return svg
+}
+
+export function normalizeMermaidChart(chart: string): string {
+  if (!isFlowchartChart(chart)) {
+    return chart
+  }
+
+  return chart
+    .split("\n")
+    .map((line) => normalizeFlowchartTrailingNote(line))
+    .join("\n")
+}
+
+function isFlowchartChart(chart: string): boolean {
+  return /^\s*(?:flowchart|graph)\s+/i.test(chart)
+}
+
+function normalizeFlowchartTrailingNote(line: string): string {
+  const targetNode = String.raw`[A-Za-z][\w-]*(?:\[[^\]]*\]|\([^)]*\)|\{[^}]*\})?`
+  const match = line.match(
+    new RegExp(String.raw`^(\s*.+?\s)(-->|---|-.->|==>)(\s*)(${targetNode})(\s+)(note\s+.+)$`, "i"),
+  )
+  if (match === null) {
+    return line
+  }
+
+  const [, source = "", connector = "", spacing = "", target = "", , note = ""] = match
+  return `${source}${connector}|${note}|${spacing}${target}`
 }
 
 function createMermaidConfig(colorMode: MermaidColorMode) {

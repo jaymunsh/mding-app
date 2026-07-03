@@ -1,5 +1,12 @@
 import { ArrowLeft, Check, Download, Eye, Pencil, X, ZoomIn, ZoomOut } from "lucide-react"
-import { type CSSProperties, lazy, Suspense, useState } from "react"
+import {
+  type CSSProperties,
+  lazy,
+  type PointerEvent as ReactPointerEvent,
+  Suspense,
+  useRef,
+  useState,
+} from "react"
 import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
@@ -13,6 +20,11 @@ const HtmlPreview = lazy(() =>
 
 const PREVIEW_ZOOM_STEPS = [0.75, 0.9, 1, 1.1, 1.25, 1.5] as const
 const DEFAULT_PREVIEW_ZOOM_INDEX = 2
+const MOBILE_DETAIL_MAX_WIDTH = 759
+const BACK_SWIPE_EDGE_WIDTH = 24
+const BACK_SWIPE_MIN_DISTANCE = 70
+const BACK_SWIPE_MAX_VERTICAL_DRIFT = 56
+const BACK_SWIPE_HORIZONTAL_DOMINANCE = 1.35
 
 type DocumentPaneProps = {
   readonly workspace: WorkspaceController
@@ -22,8 +34,24 @@ type MarkdownZoomStyle = CSSProperties & {
   readonly fontSize: string
 }
 
+type BackSwipeGesture = {
+  readonly currentX: number
+  readonly currentY: number
+  readonly isEditing: boolean
+  readonly startX: number
+  readonly startY: number
+  readonly viewportWidth: number
+}
+
+type ActiveBackSwipe = {
+  readonly pointerId: number
+  readonly startX: number
+  readonly startY: number
+}
+
 export function DocumentPane({ workspace }: DocumentPaneProps) {
   const [previewZoomIndex, setPreviewZoomIndex] = useState(DEFAULT_PREVIEW_ZOOM_INDEX)
+  const activeBackSwipeRef = useRef<ActiveBackSwipe | null>(null)
 
   if (workspace.selectedNode === null || workspace.selectedNode.kind === NodeKind.Folder) {
     return (
@@ -42,8 +70,63 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
   const exportLabel = documentFormat === DocumentFormat.Html ? "Export html" : "Export md"
   const previewZoom = PREVIEW_ZOOM_STEPS[previewZoomIndex] ?? 1
 
+  function handlePointerDown(event: ReactPointerEvent<HTMLElement>): void {
+    if (event.pointerType !== "touch" || workspace.isEditing) {
+      activeBackSwipeRef.current = null
+      return
+    }
+
+    if (event.clientX > BACK_SWIPE_EDGE_WIDTH || window.innerWidth > MOBILE_DETAIL_MAX_WIDTH) {
+      activeBackSwipeRef.current = null
+      return
+    }
+
+    activeBackSwipeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLElement>): void {
+    const activeBackSwipe = activeBackSwipeRef.current
+    activeBackSwipeRef.current = null
+    if (activeBackSwipe === null || activeBackSwipe.pointerId !== event.pointerId) {
+      return
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    if (
+      shouldNavigateBackFromEdgeSwipe({
+        currentX: event.clientX,
+        currentY: event.clientY,
+        isEditing: workspace.isEditing,
+        startX: activeBackSwipe.startX,
+        startY: activeBackSwipe.startY,
+        viewportWidth: window.innerWidth,
+      })
+    ) {
+      workspace.showBrowser()
+    }
+  }
+
   return (
     <section className="document-pane" aria-label="Document">
+      {!workspace.isEditing ? (
+        <div
+          className="document-edge-swipe-zone"
+          aria-hidden="true"
+          onPointerCancel={() => {
+            activeBackSwipeRef.current = null
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+        />
+      ) : null}
       <header className="document-header">
         <div className="document-title-group">
           <button className="document-back" type="button" onClick={workspace.showBrowser}>
@@ -127,6 +210,24 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
         />
       )}
     </section>
+  )
+}
+
+export function shouldNavigateBackFromEdgeSwipe(gesture: BackSwipeGesture): boolean {
+  if (gesture.isEditing || gesture.viewportWidth > MOBILE_DETAIL_MAX_WIDTH) {
+    return false
+  }
+  if (gesture.startX > BACK_SWIPE_EDGE_WIDTH) {
+    return false
+  }
+
+  const deltaX = gesture.currentX - gesture.startX
+  const deltaY = Math.abs(gesture.currentY - gesture.startY)
+
+  return (
+    deltaX >= BACK_SWIPE_MIN_DISTANCE &&
+    deltaY <= BACK_SWIPE_MAX_VERTICAL_DRIFT &&
+    deltaX >= deltaY * BACK_SWIPE_HORIZONTAL_DOMINANCE
   )
 }
 

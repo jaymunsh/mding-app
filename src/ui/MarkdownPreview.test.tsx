@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { MarkdownPreview, parseCalloutMarker, parseCodeLanguage } from "./MarkdownPreview"
+import {
+  MarkdownPreview,
+  normalizeMermaidChart,
+  parseCalloutMarker,
+  parseCodeLanguage,
+} from "./MarkdownPreview"
 
 describe("Markdown preview", () => {
   it("renders GFM blocks and escapes raw HTML", () => {
@@ -31,6 +36,16 @@ describe("Markdown preview", () => {
 
   it("detects Mermaid code fences from language classes", () => {
     expect(parseCodeLanguage("language-mermaid")).toBe("mermaid")
+  })
+
+  it("normalizes flowchart trailing notes used by permissive Mermaid renderers", () => {
+    const chart = `flowchart TD
+  A --> B note observe-only 저장
+  B --> C[Reviewer] note 회고 저장`
+
+    expect(normalizeMermaidChart(chart)).toBe(`flowchart TD
+  A -->|note observe-only 저장| B
+  B -->|note 회고 저장| C[Reviewer]`)
   })
 
   it("parses Obsidian callout markers and fold states", () => {
