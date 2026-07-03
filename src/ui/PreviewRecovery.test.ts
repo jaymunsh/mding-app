@@ -19,4 +19,14 @@ describe("Preview recovery", () => {
       title: "Preview needs a reload",
     })
   })
+
+  it("describes recoverable preview load errors in Korean", () => {
+    expect(
+      describePreviewFailure(new TypeError("Failed to fetch dynamically imported module"), "ko"),
+    ).toEqual({
+      detail:
+        "미리보기 코드를 불러오지 못했습니다. 앱 업데이트 후에는 새로고침으로 해결되는 경우가 많습니다.",
+      title: "미리보기를 새로고침해야 합니다",
+    })
+  })
 })

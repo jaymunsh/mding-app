@@ -6,16 +6,27 @@ import {
   FolderPlus,
   Monitor,
   Moon,
+  Settings,
   Sun,
   Upload,
 } from "lucide-react"
+import { useState } from "react"
+import {
+  type AppLanguage,
+  type LanguagePreference,
+  LanguagePreference as LanguagePreferenceValue,
+  translate,
+} from "../app/i18n"
 import { ThemePreference } from "../app/theme"
 
-const APP_VERSION = "v0.12"
+export const APP_VERSION = "v0.13"
 
 type AppTopbarProps = {
+  readonly appLanguage: AppLanguage
+  readonly languagePreference: LanguagePreference
   readonly storagePersisted: boolean
   readonly themePreference: ThemePreference
+  readonly onLanguagePreferenceChange: (preference: LanguagePreference) => void
   readonly onThemePreferenceChange: (preference: ThemePreference) => void
   readonly onCreateFolder: () => void
   readonly onCreateFile: () => void
@@ -26,8 +37,11 @@ type AppTopbarProps = {
 }
 
 export function AppTopbar({
+  appLanguage,
+  languagePreference,
   storagePersisted,
   themePreference,
+  onLanguagePreferenceChange,
   onThemePreferenceChange,
   onCreateFolder,
   onCreateFile,
@@ -36,6 +50,9 @@ export function AppTopbar({
   onExportWorkspace,
   onOpenHelp,
 }: AppTopbarProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -43,10 +60,9 @@ export function AppTopbar({
         <div>
           <div className="brand-title-row">
             <strong>mding</strong>
-            <span className="app-version">{APP_VERSION}</span>
           </div>
           <span className="brand-subtitle">
-            {storagePersisted ? "persistent local storage" : "local workspace"}
+            {storagePersisted ? t("persistentLocalStorage") : t("localWorkspace")}
           </span>
         </div>
       </div>
@@ -55,83 +71,136 @@ export function AppTopbar({
           className="toolbar-button"
           type="button"
           onClick={onCreateFolder}
-          aria-label="Folder"
+          aria-label={t("folder")}
         >
           <FolderPlus size={17} aria-hidden="true" />
-          <span>Folder</span>
+          <span>{t("folder")}</span>
         </button>
-        <button className="toolbar-button" type="button" onClick={onCreateFile} aria-label="File">
+        <button
+          className="toolbar-button"
+          type="button"
+          onClick={onCreateFile}
+          aria-label={t("file")}
+        >
           <FilePlus2 size={17} aria-hidden="true" />
-          <span>File</span>
+          <span>{t("file")}</span>
         </button>
         <button
           className="toolbar-button"
           type="button"
           onClick={onImportDocument}
-          aria-label="Import file"
+          aria-label={t("importFile")}
         >
           <FileInput size={17} aria-hidden="true" />
-          <span>Import file</span>
+          <span>{t("importFile")}</span>
         </button>
         <button
           className="toolbar-button"
           type="button"
           onClick={onImportWorkspace}
-          aria-label="Import backup"
+          aria-label={t("importBackup")}
         >
           <Upload size={17} aria-hidden="true" />
-          <span>Import backup</span>
+          <span>{t("importBackup")}</span>
         </button>
         <button
           className="toolbar-button"
           type="button"
           onClick={onExportWorkspace}
-          aria-label="Backup"
+          aria-label={t("backup")}
         >
           <Download size={17} aria-hidden="true" />
-          <span>Backup</span>
+          <span>{t("backup")}</span>
         </button>
         <button
           className="toolbar-button"
           type="button"
           onClick={onOpenHelp}
-          aria-label="Quick guide"
+          aria-label={t("quickGuide")}
         >
           <CircleHelp size={17} aria-hidden="true" />
-          <span>Guide</span>
+          <span>{t("guide")}</span>
         </button>
       </div>
       <div className="topbar-controls">
-        <fieldset className="theme-switcher">
-          <legend>Theme</legend>
+        <div className="settings-anchor">
           <button
-            className={themePreference === ThemePreference.System ? "selected" : ""}
+            className={isSettingsOpen ? "settings-trigger selected" : "settings-trigger"}
             type="button"
-            onClick={() => onThemePreferenceChange(ThemePreference.System)}
-            aria-label="Use system theme"
-            title="System"
+            onClick={() => setIsSettingsOpen((current) => !current)}
+            aria-label={t("settings")}
+            aria-expanded={isSettingsOpen}
           >
-            <Monitor size={16} aria-hidden="true" />
+            <Settings size={17} aria-hidden="true" />
           </button>
-          <button
-            className={themePreference === ThemePreference.Light ? "selected" : ""}
-            type="button"
-            onClick={() => onThemePreferenceChange(ThemePreference.Light)}
-            aria-label="Use light theme"
-            title="Light"
-          >
-            <Sun size={16} aria-hidden="true" />
-          </button>
-          <button
-            className={themePreference === ThemePreference.Dark ? "selected" : ""}
-            type="button"
-            onClick={() => onThemePreferenceChange(ThemePreference.Dark)}
-            aria-label="Use dark theme"
-            title="Dark"
-          >
-            <Moon size={16} aria-hidden="true" />
-          </button>
-        </fieldset>
+          {isSettingsOpen ? (
+            <div className="settings-menu" role="dialog" aria-label={t("settings")}>
+              <fieldset className="settings-section">
+                <legend>{t("theme")}</legend>
+                <div className="theme-switcher">
+                  <button
+                    className={themePreference === ThemePreference.System ? "selected" : ""}
+                    type="button"
+                    onClick={() => onThemePreferenceChange(ThemePreference.System)}
+                    aria-label={t("useSystemTheme")}
+                    title={t("system")}
+                  >
+                    <Monitor size={16} aria-hidden="true" />
+                    <span>{t("system")}</span>
+                  </button>
+                  <button
+                    className={themePreference === ThemePreference.Light ? "selected" : ""}
+                    type="button"
+                    onClick={() => onThemePreferenceChange(ThemePreference.Light)}
+                    aria-label={t("useLightTheme")}
+                    title={t("light")}
+                  >
+                    <Sun size={16} aria-hidden="true" />
+                    <span>{t("light")}</span>
+                  </button>
+                  <button
+                    className={themePreference === ThemePreference.Dark ? "selected" : ""}
+                    type="button"
+                    onClick={() => onThemePreferenceChange(ThemePreference.Dark)}
+                    aria-label={t("useDarkTheme")}
+                    title={t("dark")}
+                  >
+                    <Moon size={16} aria-hidden="true" />
+                    <span>{t("dark")}</span>
+                  </button>
+                </div>
+              </fieldset>
+              <fieldset className="settings-section">
+                <legend>{t("language")}</legend>
+                <div className="language-switcher">
+                  <button
+                    className={
+                      languagePreference === LanguagePreferenceValue.English ? "selected" : ""
+                    }
+                    type="button"
+                    onClick={() => onLanguagePreferenceChange(LanguagePreferenceValue.English)}
+                    aria-label={t("useEnglish")}
+                  >
+                    {t("english")}
+                  </button>
+                  <button
+                    className={
+                      languagePreference === LanguagePreferenceValue.Korean ? "selected" : ""
+                    }
+                    type="button"
+                    onClick={() => onLanguagePreferenceChange(LanguagePreferenceValue.Korean)}
+                    aria-label={t("useKorean")}
+                  >
+                    {t("korean")}
+                  </button>
+                </div>
+              </fieldset>
+              <div className="settings-version">
+                <span>{APP_VERSION}</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )

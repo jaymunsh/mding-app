@@ -1,15 +1,17 @@
 import { ChevronRight, FileText, Folder, FolderInput, Pencil, Trash2, Undo2, X } from "lucide-react"
 import { useMemo, useState } from "react"
+import { type AppLanguage, formatEditedTime, translate } from "../app/i18n"
 import type { WorkspaceController } from "../app/workspaceController"
 import { buildTree, TreeSortOrder } from "../domain/tree"
 import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
-import { canUseMoveTarget, findTreeNode, formatEditedTime, nextSortOrder } from "./fileTreeModel"
+import { canUseMoveTarget, findTreeNode, nextSortOrder } from "./fileTreeModel"
 
 type FileTreeProps = {
+  readonly appLanguage: AppLanguage
   readonly workspace: WorkspaceController
 }
 
-export function FileTree({ workspace }: FileTreeProps) {
+export function FileTree({ appLanguage, workspace }: FileTreeProps) {
   const [renameText, setRenameText] = useState("")
   const [sortOrder, setSortOrder] = useState<TreeSortOrder>(TreeSortOrder.Updated)
   const [isManaging, setIsManaging] = useState(false)
@@ -22,9 +24,12 @@ export function FileTree({ workspace }: FileTreeProps) {
   const moveSelectionCount = moveSelectedTreeNodes.length
   const moveSelectionLabel =
     moveSelectionCount === 1
-      ? (moveSelectedTreeNodes[0]?.name ?? "selected item")
-      : `${moveSelectionCount} items`
-  const sortLabel = sortOrder === TreeSortOrder.Updated ? "Latest" : "Name"
+      ? (moveSelectedTreeNodes[0]?.name ?? translate(appLanguage, "selectedItem"))
+      : itemCountLabel(moveSelectionCount, appLanguage)
+  const sortLabel =
+    sortOrder === TreeSortOrder.Updated
+      ? translate(appLanguage, "latest")
+      : translate(appLanguage, "name")
 
   function toggleManageMode(): void {
     if (isManaging) {
@@ -53,7 +58,7 @@ export function FileTree({ workspace }: FileTreeProps) {
       <div className="panel-heading">
         <div className="panel-heading-main">
           <div className="panel-title-row">
-            <span>Workspace</span>
+            <span>{translate(appLanguage, "workspace")}</span>
             <button
               className="sort-trigger"
               type="button"
@@ -64,11 +69,11 @@ export function FileTree({ workspace }: FileTreeProps) {
           </div>
         </div>
         <div className="panel-heading-side">
-          <span>{workspace.nodes.length} items</span>
+          <span>{itemCountLabel(workspace.nodes.length, appLanguage)}</span>
         </div>
       </div>
       {tree.length === 0 ? (
-        <div className="empty-state">Create a Markdown file to start.</div>
+        <div className="empty-state">{translate(appLanguage, "createMarkdownStart")}</div>
       ) : (
         <div className="tree-list">
           {tree.map((node) => (
@@ -76,6 +81,7 @@ export function FileTree({ workspace }: FileTreeProps) {
               key={node.id}
               node={node}
               depth={0}
+              appLanguage={appLanguage}
               workspace={workspace}
               isManaging={isManaging}
               isChoosingMoveTarget={isChoosingMoveTarget}
@@ -98,19 +104,22 @@ export function FileTree({ workspace }: FileTreeProps) {
             }}
           >
             <Undo2 size={15} aria-hidden="true" />
-            Move root
+            {translate(appLanguage, "moveRoot")}
           </button>
           <button type="button" onClick={() => setIsChoosingMoveTarget(false)}>
             <X size={15} aria-hidden="true" />
-            Cancel
+            {translate(appLanguage, "cancel")}
           </button>
         </div>
       ) : null}
 
       {isChoosingMoveTarget ? (
-        <div className="tree-status">Move {moveSelectionLabel}: choose folder</div>
+        <div className="tree-status">
+          {translate(appLanguage, "move")} {moveSelectionLabel}:{" "}
+          {translate(appLanguage, "moveChooseFolderSuffix")}
+        </div>
       ) : isManaging && moveSelectionCount > 0 ? (
-        <div className="tree-status">{moveSelectionCount} selected for move</div>
+        <div className="tree-status">{selectedForMoveLabel(moveSelectionCount, appLanguage)}</div>
       ) : null}
 
       {isManaging ? (
@@ -124,14 +133,14 @@ export function FileTree({ workspace }: FileTreeProps) {
         >
           <input
             type="text"
-            placeholder={workspace.selectedNode?.name ?? "Rename selected"}
+            placeholder={workspace.selectedNode?.name ?? translate(appLanguage, "renameSelected")}
             value={renameText}
             onChange={(event) => setRenameText(event.currentTarget.value)}
-            aria-label="Rename selected item"
+            aria-label={translate(appLanguage, "renameSelected")}
           />
           <button type="submit" disabled={workspace.selectedNode === null}>
             <Pencil size={15} aria-hidden="true" />
-            Rename
+            {translate(appLanguage, "rename")}
           </button>
         </form>
       ) : null}
@@ -139,7 +148,7 @@ export function FileTree({ workspace }: FileTreeProps) {
       <div className="tree-actions">
         <button type="button" className={isManaging ? "selected" : ""} onClick={toggleManageMode}>
           <FolderInput size={15} aria-hidden="true" />
-          {isManaging ? "Done" : "Manage"}
+          {isManaging ? translate(appLanguage, "done") : translate(appLanguage, "manage")}
         </button>
         <button
           type="button"
@@ -147,7 +156,7 @@ export function FileTree({ workspace }: FileTreeProps) {
           onClick={() => setIsChoosingMoveTarget(true)}
         >
           <Undo2 size={15} aria-hidden="true" />
-          Move
+          {translate(appLanguage, "move")}
         </button>
         <button
           className="danger"
@@ -156,7 +165,7 @@ export function FileTree({ workspace }: FileTreeProps) {
           onClick={workspace.deleteSelected}
         >
           <Trash2 size={15} aria-hidden="true" />
-          Delete
+          {translate(appLanguage, "delete")}
         </button>
       </div>
     </div>
@@ -166,6 +175,7 @@ export function FileTree({ workspace }: FileTreeProps) {
 type TreeRowProps = {
   readonly node: TreeNode
   readonly depth: number
+  readonly appLanguage: AppLanguage
   readonly workspace: WorkspaceController
   readonly isManaging: boolean
   readonly isChoosingMoveTarget: boolean
@@ -179,6 +189,7 @@ type TreeRowProps = {
 function TreeRow({
   node,
   depth,
+  appLanguage,
   workspace,
   isManaging,
   isChoosingMoveTarget,
@@ -247,7 +258,7 @@ function TreeRow({
         )}
         <span className="tree-row-copy">
           <span className="tree-row-name">{node.name}</span>
-          <span className="tree-row-meta">{formatEditedTime(node.updatedAt)}</span>
+          <span className="tree-row-meta">{formatEditedTime(node.updatedAt, appLanguage)}</span>
         </span>
       </button>
       {node.kind === NodeKind.Folder && expanded && hasChildren ? (
@@ -257,6 +268,7 @@ function TreeRow({
               key={child.id}
               node={child}
               depth={depth + 1}
+              appLanguage={appLanguage}
               workspace={workspace}
               isManaging={isManaging}
               isChoosingMoveTarget={isChoosingMoveTarget}
@@ -291,4 +303,16 @@ function treeRowClassName(isSelected: boolean, canMoveHere: boolean): string {
 
 function moveSelectClassName(isSelected: boolean): string {
   return ["move-select-indicator", isSelected ? "checked" : ""].filter(Boolean).join(" ")
+}
+
+function itemCountLabel(count: number, language: AppLanguage): string {
+  return language === "ko"
+    ? `${count}${translate(language, "items")}`
+    : `${count} ${translate(language, "items")}`
+}
+
+function selectedForMoveLabel(count: number, language: AppLanguage): string {
+  return language === "ko"
+    ? `${count}${translate(language, "selectedForMove")}`
+    : `${count} ${translate(language, "selectedForMove")}`
 }

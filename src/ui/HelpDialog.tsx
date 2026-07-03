@@ -1,56 +1,56 @@
 import { X } from "lucide-react"
+import { type AppLanguage, translate } from "../app/i18n"
 
 type HelpDialogProps = {
+  readonly appLanguage: AppLanguage
   readonly onClose: () => void
 }
 
-export function HelpDialog({ onClose }: HelpDialogProps) {
+export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+
   return (
     <div className="modal-overlay help-overlay">
-      <button className="modal-backdrop" type="button" onClick={onClose} aria-label="Close guide" />
+      <button
+        className="modal-backdrop"
+        type="button"
+        onClick={onClose}
+        aria-label={t("closeGuide")}
+      />
       <section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
         <header className="help-header">
-          <h2 id="help-title">Quick guide</h2>
-          <button type="button" onClick={onClose} aria-label="Close guide">
+          <h2 id="help-title">{t("helpTitle")}</h2>
+          <button type="button" onClick={onClose} aria-label={t("closeGuide")}>
             <X size={16} aria-hidden="true" />
           </button>
         </header>
         <div className="help-content">
           <section className="help-section">
-            <h3>Write</h3>
+            <h3>{t("helpWriteTitle")}</h3>
             <ul>
-              <li>Create folders and Markdown files from the top toolbar.</li>
-              <li>Open a Markdown file to preview it, then use Edit to change the source.</li>
-              <li>Manage mode enables rename, move, and delete actions.</li>
+              <li>{t("helpWrite1")}</li>
+              <li>{t("helpWrite2")}</li>
+              <li>{t("helpWrite3")}</li>
             </ul>
           </section>
           <section className="help-section">
-            <h3>Preview</h3>
+            <h3>{t("helpPreviewTitle")}</h3>
             <ul>
-              <li>
-                Markdown supports tables, task lists, callouts, code blocks, Mermaid, and images by
-                URL.
-              </li>
-              <li>HTML files are preview-only and keep their own layout inside the viewer.</li>
-              <li>Zoom controls change the document scale without changing the saved file.</li>
+              <li>{t("helpPreview1")}</li>
+              <li>{t("helpPreview2")}</li>
+              <li>{t("helpPreview3")}</li>
             </ul>
           </section>
           <section className="help-section">
-            <h3>Backup</h3>
+            <h3>{t("helpBackupTitle")}</h3>
             <ul>
-              <li>Workspace data is stored in this browser or installed PWA.</li>
-              <li>
-                Backup exports a zip you can import again on iOS, iPadOS, macOS, or another browser.
-              </li>
-              <li>
-                Back up before clearing site data, reinstalling the app, or switching devices.
-              </li>
+              <li>{t("helpBackup1")}</li>
+              <li>{t("helpBackup2")}</li>
+              <li>{t("helpBackup3")}</li>
             </ul>
           </section>
         </div>
-        <p className="help-note">
-          Images are not stored locally; keep important image files or URLs separately.
-        </p>
+        <p className="help-note">{t("helpNote")}</p>
       </section>
     </div>
   )

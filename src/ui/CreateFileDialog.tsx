@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import type { RefObject } from "react"
+import { type AppLanguage, translate } from "../app/i18n"
 
 type CreateFileDialogProps = {
+  readonly appLanguage: AppLanguage
   readonly inputRef: RefObject<HTMLInputElement | null>
   readonly name: string
   readonly onNameChange: (name: string) => void
@@ -10,6 +12,7 @@ type CreateFileDialogProps = {
 }
 
 export function CreateFileDialog({
+  appLanguage,
   inputRef,
   name,
   onNameChange,
@@ -17,10 +20,16 @@ export function CreateFileDialog({
   onCreate,
 }: CreateFileDialogProps) {
   const canCreate = name.trim().length > 0
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
   return (
     <div className="modal-overlay">
-      <button className="modal-backdrop" type="button" onClick={onCancel} aria-label="Cancel" />
+      <button
+        className="modal-backdrop"
+        type="button"
+        onClick={onCancel}
+        aria-label={t("cancel")}
+      />
       <section
         className="name-dialog"
         role="dialog"
@@ -28,8 +37,8 @@ export function CreateFileDialog({
         aria-labelledby="new-file-title"
       >
         <header className="name-dialog-header">
-          <h2 id="new-file-title">New Markdown file</h2>
-          <button type="button" onClick={onCancel} aria-label="Cancel">
+          <h2 id="new-file-title">{t("newMarkdownFile")}</h2>
+          <button type="button" onClick={onCancel} aria-label={t("cancel")}>
             <X size={16} aria-hidden="true" />
           </button>
         </header>
@@ -40,7 +49,7 @@ export function CreateFileDialog({
             onCreate()
           }}
         >
-          <label htmlFor="new-file-name">File name</label>
+          <label htmlFor="new-file-name">{t("fileName")}</label>
           <input
             id="new-file-name"
             ref={inputRef}
@@ -49,13 +58,13 @@ export function CreateFileDialog({
             placeholder="Notes.md"
             onChange={(event) => onNameChange(event.currentTarget.value)}
           />
-          <p>`.md` is added automatically when omitted.</p>
+          <p>{t("mdExtensionHelp")}</p>
           <div className="name-dialog-actions">
             <button type="button" onClick={onCancel}>
-              Cancel
+              {t("cancel")}
             </button>
             <button className="primary" type="submit" disabled={!canCreate}>
-              Create
+              {t("create")}
             </button>
           </div>
         </form>

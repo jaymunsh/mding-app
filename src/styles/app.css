@@ -1,14 +1,14 @@
 :root {
   color-scheme: light;
-  --surface-primary: #f7f7f4;
-  --surface-secondary: #ffffff;
-  --surface-elevated: #ffffff;
-  --surface-inset: #efefeb;
+  --surface-primary: #fbfaf5;
+  --surface-secondary: #f8f6ef;
+  --surface-elevated: #fffdf7;
+  --surface-inset: #f1eee5;
   --text-primary: #181916;
   --text-secondary: #65685f;
   --text-tertiary: #8c9085;
-  --border-default: #d9dbd2;
-  --border-subtle: #e8e9e2;
+  --border-default: #ded9ce;
+  --border-subtle: #ebe6dc;
   --accent-primary: #2f6f5e;
   --accent-hover: #255a4c;
   --accent-contrast: #ffffff;
@@ -222,40 +222,120 @@ img.brand-mark {
   min-width: max-content;
 }
 
-.theme-switcher {
+.settings-anchor {
+  position: relative;
+}
+
+.settings-trigger {
   display: inline-grid;
-  grid-template-columns: repeat(3, 32px);
-  align-items: center;
-  min-height: 36px;
-  margin: 0;
-  padding: 2px;
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  place-items: center;
+}
+
+.settings-trigger.selected {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 80;
+  display: grid;
+  width: min(304px, calc(100vw - var(--space-8)));
+  gap: var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  background: var(--surface-inset);
+  background: var(--surface-elevated);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
-.theme-switcher legend {
-  position: fixed;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.theme-switcher button {
-  width: 30px;
-  min-width: 30px;
-  min-height: 30px;
+.settings-section {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
   padding: 0;
-  border-color: transparent;
+  border: 0;
+}
+
+.settings-section legend {
+  transform: translateY(-2px);
+  margin-bottom: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.theme-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  min-height: 34px;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
   background: transparent;
 }
 
-.theme-switcher button.selected {
+.theme-switcher button,
+.language-switcher button {
+  display: inline-flex;
+  width: auto;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-color: transparent;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.theme-switcher button:hover,
+.language-switcher button:hover {
+  background: color-mix(in srgb, var(--surface-secondary) 72%, transparent);
+}
+
+.language-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  min-height: 34px;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.theme-switcher button.selected,
+.language-switcher button.selected {
   color: var(--accent-primary);
   border-color: var(--border-default);
   background: var(--surface-secondary);
+}
+
+.settings-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.settings-version span {
+  font-weight: 500;
 }
 
 .app-version {
@@ -588,7 +668,7 @@ img.brand-mark {
 .tree-list {
   min-height: 0;
   overflow: auto;
-  padding: var(--space-2);
+  padding: 0 var(--space-2) var(--space-2);
 }
 
 .tree-node {

@@ -2,6 +2,13 @@ import { AlertCircle } from "lucide-react"
 import { type DragEvent, useEffect, useRef, useState } from "react"
 import { classifyDroppedFiles, DropImportKind } from "../app/dropImport"
 import {
+  readLanguagePreference,
+  resolveAppLanguage,
+  saveLanguagePreference,
+  translate,
+  translateAppMessage,
+} from "../app/i18n"
+import {
   applyThemePreference,
   readThemePreference,
   saveThemePreference,
@@ -20,10 +27,13 @@ export function App() {
   const workspaceInputRef = useRef<HTMLInputElement>(null)
   const newFileInputRef = useRef<HTMLInputElement>(null)
   const [themePreference, setThemePreference] = useState(readThemePreference)
+  const [languagePreference, setLanguagePreference] = useState(readLanguagePreference)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [isCreateFileOpen, setIsCreateFileOpen] = useState(false)
   const [isDropActive, setIsDropActive] = useState(false)
   const [newFileName, setNewFileName] = useState("Untitled.md")
+  const appLanguage = resolveAppLanguage(languagePreference)
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
   useEffect(() => {
     applyThemePreference(themePreference)
@@ -45,6 +55,10 @@ export function App() {
       newFileInputRef.current?.select()
     }
   }, [isCreateFileOpen])
+
+  useEffect(() => {
+    saveLanguagePreference(languagePreference)
+  }, [languagePreference])
 
   function openCreateFileDialog(): void {
     setNewFileName("Untitled.md")
@@ -105,15 +119,18 @@ export function App() {
     <div
       className={`app-shell screen-${workspace.screen}`}
       role="application"
-      aria-label="mding workspace"
+      aria-label={t("appAriaLabel")}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <AppTopbar
+        appLanguage={appLanguage}
+        languagePreference={languagePreference}
         storagePersisted={workspace.storagePersisted}
         themePreference={themePreference}
+        onLanguagePreferenceChange={setLanguagePreference}
         onThemePreferenceChange={setThemePreference}
         onCreateFolder={workspace.createFolder}
         onCreateFile={openCreateFileDialog}
@@ -126,24 +143,24 @@ export function App() {
       {workspace.errorMessage !== null ? (
         <div className="app-alert" role="alert">
           <AlertCircle size={17} aria-hidden="true" />
-          <span>{workspace.errorMessage}</span>
+          <span>{translateAppMessage(appLanguage, workspace.errorMessage)}</span>
           <button type="button" onClick={workspace.clearError}>
-            Dismiss
+            {t("dismiss")}
           </button>
         </div>
       ) : null}
 
       <main className="workspace-frame">
-        <aside className="sidebar" aria-label="Workspace files">
-          <FileTree workspace={workspace} />
+        <aside className="sidebar" aria-label={t("workspaceFiles")}>
+          <FileTree workspace={workspace} appLanguage={appLanguage} />
         </aside>
         <section className="document-region">
-          <DocumentPane workspace={workspace} />
+          <DocumentPane workspace={workspace} appLanguage={appLanguage} />
         </section>
       </main>
       {isDropActive ? (
         <div className="drop-overlay" aria-hidden="true">
-          <div className="drop-overlay-surface">Drop files to import</div>
+          <div className="drop-overlay-surface">{t("dropFilesToImport")}</div>
         </div>
       ) : null}
 
@@ -151,7 +168,7 @@ export function App() {
         ref={documentInputRef}
         className="hidden-input"
         type="file"
-        aria-label="Import Markdown or HTML files"
+        aria-label={t("importDocumentAria")}
         accept=".md,.markdown,.html,.htm,text/markdown,text/html,text/plain"
         multiple
         onChange={(event) => {
@@ -166,7 +183,7 @@ export function App() {
         ref={workspaceInputRef}
         className="hidden-input"
         type="file"
-        aria-label="Import workspace backup"
+        aria-label={t("importWorkspaceAria")}
         accept="application/zip,application/json,.zip,.json"
         onChange={(event) => {
           const file = event.currentTarget.files?.item(0)
@@ -176,9 +193,12 @@ export function App() {
           event.currentTarget.value = ""
         }}
       />
-      {isHelpOpen ? <HelpDialog onClose={() => setIsHelpOpen(false)} /> : null}
+      {isHelpOpen ? (
+        <HelpDialog appLanguage={appLanguage} onClose={() => setIsHelpOpen(false)} />
+      ) : null}
       {isCreateFileOpen ? (
         <CreateFileDialog
+          appLanguage={appLanguage}
           inputRef={newFileInputRef}
           name={newFileName}
           onNameChange={setNewFileName}

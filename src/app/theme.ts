@@ -15,7 +15,7 @@ const ThemePreferenceSchema = z.union([
 ])
 
 const themeStorageKey = "mding.theme"
-const lightThemeColor = "#f7f7f4"
+const lightThemeColor = "#fbfaf5"
 const darkThemeColor = "#111210"
 
 export function readThemePreference(): ThemePreference {

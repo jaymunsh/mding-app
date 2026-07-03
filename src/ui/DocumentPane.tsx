@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { type AppLanguage, translate } from "../app/i18n"
 import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
@@ -28,6 +29,7 @@ const BACK_SWIPE_MAX_VERTICAL_DRIFT = 56
 const BACK_SWIPE_HORIZONTAL_DOMINANCE = 1.35
 
 type DocumentPaneProps = {
+  readonly appLanguage: AppLanguage
   readonly workspace: WorkspaceController
 }
 
@@ -50,16 +52,17 @@ type ActiveBackSwipe = {
   readonly startY: number
 }
 
-export function DocumentPane({ workspace }: DocumentPaneProps) {
+export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
   const [previewZoomIndex, setPreviewZoomIndex] = useState(DEFAULT_PREVIEW_ZOOM_INDEX)
   const activeBackSwipeRef = useRef<ActiveBackSwipe | null>(null)
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
   if (workspace.selectedNode === null || workspace.selectedNode.kind === NodeKind.Folder) {
     return (
-      <section className="document-pane empty-document" aria-label="No document selected">
+      <section className="document-pane empty-document" aria-label={t("noDocumentAria")}>
         <div>
-          <h1>Select a file</h1>
-          <p>Create Markdown files or import Markdown and HTML files to preview offline.</p>
+          <h1>{t("selectFile")}</h1>
+          <p>{t("selectFileHelp")}</p>
         </div>
       </section>
     )
@@ -68,7 +71,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
   const selectedDocument = workspace.selectedDocument
   const documentFormat = selectedDocument?.format ?? DocumentFormat.Markdown
   const canEdit = isEditableDocument(selectedDocument)
-  const exportLabel = documentFormat === DocumentFormat.Html ? "Export html" : "Export md"
+  const exportLabel = documentFormat === DocumentFormat.Html ? t("exportHtml") : t("exportMd")
   const previewZoom = PREVIEW_ZOOM_STEPS[previewZoomIndex] ?? 1
 
   function handlePointerDown(event: ReactPointerEvent<HTMLElement>): void {
@@ -116,7 +119,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
   }
 
   return (
-    <section className="document-pane" aria-label="Document">
+    <section className="document-pane" aria-label={t("document")}>
       {!workspace.isEditing ? (
         <div
           className="document-edge-swipe-zone"
@@ -132,28 +135,28 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
         <div className="document-title-group">
           <button className="document-back" type="button" onClick={workspace.showBrowser}>
             <ArrowLeft size={16} aria-hidden="true" />
-            <span>Files</span>
+            <span>{t("files")}</span>
           </button>
           <div className="document-title-copy">
             <h1>{workspace.selectedNode.name}</h1>
-            <p>{workspace.isDirty ? "Unsaved changes" : "Saved locally"}</p>
+            <p>{workspace.isDirty ? t("unsavedChanges") : t("savedLocally")}</p>
           </div>
         </div>
         <div className="document-actions">
           {workspace.isEditing && canEdit ? (
             <>
-              <button type="button" onClick={workspace.cancelEditing} aria-label="Cancel">
+              <button type="button" onClick={workspace.cancelEditing} aria-label={t("cancel")}>
                 <X size={16} aria-hidden="true" />
-                <span>Cancel</span>
+                <span>{t("cancel")}</span>
               </button>
               <button
                 className="primary"
                 type="button"
                 onClick={workspace.saveSelectedDocument}
-                aria-label="Save"
+                aria-label={t("save")}
               >
                 <Check size={16} aria-hidden="true" />
-                <span>Save</span>
+                <span>{t("save")}</span>
               </button>
             </>
           ) : (
@@ -162,6 +165,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
                 zoom={previewZoom}
                 canZoomOut={previewZoomIndex > 0}
                 canZoomIn={previewZoomIndex < PREVIEW_ZOOM_STEPS.length - 1}
+                appLanguage={appLanguage}
                 onZoomOut={() => setPreviewZoomIndex((current) => Math.max(0, current - 1))}
                 onZoomIn={() =>
                   setPreviewZoomIndex((current) =>
@@ -183,10 +187,10 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
                   className="primary"
                   type="button"
                   onClick={workspace.startEditing}
-                  aria-label="Edit"
+                  aria-label={t("edit")}
                 >
                   <Pencil size={16} aria-hidden="true" />
-                  <span>Edit</span>
+                  <span>{t("edit")}</span>
                 </button>
               ) : null}
             </>
@@ -196,7 +200,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
 
       {workspace.isEditing ? (
         <label className="editor-wrap">
-          <span>Markdown source</span>
+          <span>{t("markdownSource")}</span>
           <textarea
             value={workspace.editBuffer}
             onChange={(event) => workspace.updateEditBuffer(event.currentTarget.value)}
@@ -206,6 +210,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
       ) : (
         <DocumentPreview
           documentFormat={documentFormat}
+          appLanguage={appLanguage}
           source={selectedDocument?.markdown ?? ""}
           zoom={previewZoom}
         />
@@ -236,6 +241,7 @@ function PreviewZoomControls({
   zoom,
   canZoomOut,
   canZoomIn,
+  appLanguage,
   onZoomOut,
   onZoomIn,
   onReset,
@@ -243,26 +249,24 @@ function PreviewZoomControls({
   readonly zoom: number
   readonly canZoomOut: boolean
   readonly canZoomIn: boolean
+  readonly appLanguage: AppLanguage
   readonly onZoomOut: () => void
   readonly onZoomIn: () => void
   readonly onReset: () => void
 }) {
   const zoomLabel = `${Math.round(zoom * 100)}%`
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
   return (
     <fieldset className="preview-zoom-controls">
-      <legend>Preview zoom</legend>
-      <button type="button" onClick={onZoomOut} disabled={!canZoomOut} aria-label="Zoom out">
+      <legend>{t("previewZoom")}</legend>
+      <button type="button" onClick={onZoomOut} disabled={!canZoomOut} aria-label={t("zoomOut")}>
         <ZoomOut size={15} aria-hidden="true" />
       </button>
-      <button
-        type="button"
-        onClick={onReset}
-        aria-label={`Reset zoom to 100%, current ${zoomLabel}`}
-      >
+      <button type="button" onClick={onReset} aria-label={`${t("resetZoom")} ${zoomLabel}`}>
         {zoomLabel}
       </button>
-      <button type="button" onClick={onZoomIn} disabled={!canZoomIn} aria-label="Zoom in">
+      <button type="button" onClick={onZoomIn} disabled={!canZoomIn} aria-label={t("zoomIn")}>
         <ZoomIn size={15} aria-hidden="true" />
       </button>
     </fieldset>
@@ -271,28 +275,31 @@ function PreviewZoomControls({
 
 function DocumentPreview({
   documentFormat,
+  appLanguage,
   source,
   zoom,
 }: {
   readonly documentFormat: DocumentFormat
+  readonly appLanguage: AppLanguage
   readonly source: string
   readonly zoom: number
 }) {
   const markdownZoomStyle = createMarkdownZoomStyle(zoom)
+  const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
   switch (documentFormat) {
     case DocumentFormat.Html:
       return (
         <article className="html-preview">
-          <PreviewErrorBoundary resetKey={`html:${zoom}:${source}`}>
-            <Suspense fallback={<p>Loading preview...</p>}>
-              <HtmlPreview html={source} zoom={zoom} />
+          <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`html:${zoom}:${source}`}>
+            <Suspense fallback={<p>{t("loadingPreview")}</p>}>
+              <HtmlPreview appLanguage={appLanguage} html={source} zoom={zoom} />
             </Suspense>
           </PreviewErrorBoundary>
           {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
               <Eye size={18} aria-hidden="true" />
-              This HTML file is empty.
+              {t("emptyHtml")}
             </div>
           ) : null}
         </article>
@@ -300,9 +307,9 @@ function DocumentPreview({
     case DocumentFormat.Markdown:
       return (
         <article className="markdown-preview">
-          <PreviewErrorBoundary resetKey={`markdown:${zoom}:${source}`}>
+          <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`markdown:${zoom}:${source}`}>
             <div className="markdown-body" style={markdownZoomStyle}>
-              <Suspense fallback={<p>Loading preview...</p>}>
+              <Suspense fallback={<p>{t("loadingPreview")}</p>}>
                 <MarkdownPreview markdown={source} />
               </Suspense>
             </div>
@@ -310,7 +317,7 @@ function DocumentPreview({
           {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
               <Eye size={18} aria-hidden="true" />
-              This Markdown file is empty.
+              {t("emptyMarkdown")}
             </div>
           ) : null}
         </article>

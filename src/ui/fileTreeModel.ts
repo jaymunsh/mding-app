@@ -34,34 +34,6 @@ export function findTreeNode(nodes: readonly TreeNode[], id: NodeId | null): Tre
   return null
 }
 
-export function formatEditedTime(timestamp: number): string {
-  const date = new Date(timestamp)
-  const now = new Date()
-  if (date.toDateString() === now.toDateString()) {
-    return `Edited ${timeFormatter.format(date)}`
-  }
-  if (date.getFullYear() === now.getFullYear()) {
-    return `Edited ${dayFormatter.format(date)}`
-  }
-  return `Edited ${dateFormatter.format(date)}`
-}
-
 function treeContainsNode(node: TreeNode, id: NodeId): boolean {
   return node.id === id || node.children.some((child) => treeContainsNode(child, id))
 }
-
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-  hour: "2-digit",
-  minute: "2-digit",
-})
-
-const dayFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-})
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-})
