@@ -37,6 +37,16 @@
     }
   },
   "files": {
-    "includes": ["**", "!node_modules", "!dist", "!coverage", "!.build", "!.codegraph", "!.git"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!dist",
+      "!dev-dist",
+      "!docs/*.html",
+      "!coverage",
+      "!.build",
+      "!.codegraph",
+      "!.git"
+    ]
   }
 }

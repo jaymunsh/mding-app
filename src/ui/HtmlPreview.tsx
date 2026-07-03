@@ -22,9 +22,15 @@ export function HtmlPreview({ html, zoom }: HtmlPreviewProps) {
     let cancelled = false
 
     async function buildPreview(): Promise<void> {
-      const srcDoc = await createHtmlPreviewDocument(html, colorMode, idPrefix, zoom)
-      if (!cancelled) {
-        setPreview({ srcDoc })
+      try {
+        const srcDoc = await createHtmlPreviewDocument(html, colorMode, idPrefix, zoom)
+        if (!cancelled) {
+          setPreview({ srcDoc })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPreview({ srcDoc: createHtmlPreviewErrorDocument(colorMode, zoom, error) })
+        }
       }
     }
 
@@ -55,6 +61,30 @@ function createLoadingDocument(colorMode: MermaidColorMode, zoom: number): strin
   const foreground = colorMode === "dark" ? "#f3f4ed" : "#181916"
   const background = colorMode === "dark" ? "#0c0d0b" : "#ffffff"
   return `<!doctype html><html style="zoom:${zoom}"><body style="margin:0;padding:20px;color:${foreground};background:${background};font-family:system-ui,sans-serif">Loading HTML preview...</body></html>`
+}
+
+export function createHtmlPreviewErrorDocument(
+  colorMode: MermaidColorMode,
+  zoom: number,
+  error: unknown,
+): string {
+  const foreground = colorMode === "dark" ? "#f3f4ed" : "#181916"
+  const secondary = colorMode === "dark" ? "#a9ada1" : "#65685f"
+  const background = colorMode === "dark" ? "#0c0d0b" : "#ffffff"
+  const inset = colorMode === "dark" ? "#111210" : "#f7f7f4"
+  const border = colorMode === "dark" ? "#31342e" : "#d9dbd2"
+  const message = escapeHtml(messageFromError(error))
+
+  return `<!doctype html><html style="zoom:${zoom}"><body style="margin:0;padding:20px;color:${foreground};background:${background};font-family:system-ui,sans-serif"><main style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:20px;border:1px solid ${border};border-radius:8px;background:${inset}"><h1 style="margin:0 0 8px;font-size:20px;line-height:1.25">HTML preview could not load</h1><p style="margin:0 0 12px;color:${secondary};line-height:1.5">This document is still saved locally. Go back to files or reload the app to try again.</p><pre style="overflow:auto;margin:0;padding:12px;border:1px solid ${border};border-radius:6px;white-space:pre-wrap;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace">${message}</pre></main></body></html>`
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
 }
 
 function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): void {

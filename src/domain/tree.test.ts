@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildTree, getFolderTarget, TreeSortOrder, uniqueName } from "./tree"
+import { buildTree, getFolderTarget, moveNodesToParent, TreeSortOrder, uniqueName } from "./tree"
 import { createNodeId, NodeKind, type WorkspaceNode } from "./workspace"
 
 function node(kind: NodeKind, name: string, parentId: WorkspaceNode["parentId"]): WorkspaceNode {
@@ -54,5 +54,65 @@ describe("workspace tree", () => {
     const second = node(NodeKind.File, "Untitled 2.md", null)
 
     expect(uniqueName([first, second], null, "Untitled.md")).toBe("Untitled 3.md")
+  })
+
+  it("moves multiple selected root files into the same folder", () => {
+    const folder = node(NodeKind.Folder, "Notes", null)
+    const first = node(NodeKind.File, "Today.md", null)
+    const second = node(NodeKind.File, "Tomorrow.md", null)
+
+    const result = moveNodesToParent({
+      nodes: [folder, first, second],
+      selectedIds: [first.id, second.id],
+      parentId: folder.id,
+      updatedAt: 10,
+    })
+
+    expect(result.kind).toBe("moved")
+    if (result.kind !== "moved") {
+      throw new Error("Expected nodes to move.")
+    }
+    expect(result.nodes).toEqual([
+      folder,
+      { ...first, parentId: folder.id, updatedAt: 10 },
+      { ...second, parentId: folder.id, updatedAt: 10 },
+    ])
+  })
+
+  it("moves only the top selected folder when its child is also selected", () => {
+    const folder = node(NodeKind.Folder, "Notes", null)
+    const child = node(NodeKind.File, "Today.md", folder.id)
+    const target = node(NodeKind.Folder, "Archive", null)
+
+    const result = moveNodesToParent({
+      nodes: [folder, child, target],
+      selectedIds: [folder.id, child.id],
+      parentId: target.id,
+      updatedAt: 10,
+    })
+
+    expect(result.kind).toBe("moved")
+    if (result.kind !== "moved") {
+      throw new Error("Expected parent selection to move.")
+    }
+    expect(result.nodes).toEqual([{ ...folder, parentId: target.id, updatedAt: 10 }, child, target])
+  })
+
+  it("rejects moving a selected folder into one of its descendants", () => {
+    const folder = node(NodeKind.Folder, "Notes", null)
+    const childFolder = node(NodeKind.Folder, "Drafts", folder.id)
+
+    const result = moveNodesToParent({
+      nodes: [folder, childFolder],
+      selectedIds: [folder.id],
+      parentId: childFolder.id,
+      updatedAt: 10,
+    })
+
+    expect(result.kind).toBe("invalid")
+    if (result.kind !== "invalid") {
+      throw new Error("Expected descendant target to be rejected.")
+    }
+    expect(result.message).toBe("Cannot move into itself.")
   })
 })

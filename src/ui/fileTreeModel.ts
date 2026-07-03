@@ -5,12 +5,15 @@ export function nextSortOrder(sortOrder: TreeSortOrder): TreeSortOrder {
   return sortOrder === TreeSortOrder.Updated ? TreeSortOrder.Name : TreeSortOrder.Updated
 }
 
-export function canUseMoveTarget(node: TreeNode, selectedTreeNode: TreeNode | null): boolean {
-  if (selectedTreeNode === null || node.kind !== NodeKind.Folder) {
+export function canUseMoveTarget(node: TreeNode, selectedTreeNodes: readonly TreeNode[]): boolean {
+  if (selectedTreeNodes.length === 0 || node.kind !== NodeKind.Folder) {
     return false
   }
 
-  return node.id !== selectedTreeNode.id && !treeContainsNode(selectedTreeNode, node.id)
+  return selectedTreeNodes.every(
+    (selectedTreeNode) =>
+      node.id !== selectedTreeNode.id && !treeContainsNode(selectedTreeNode, node.id),
+  )
 }
 
 export function findTreeNode(nodes: readonly TreeNode[], id: NodeId | null): TreeNode | null {

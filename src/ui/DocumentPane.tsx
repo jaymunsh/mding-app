@@ -10,6 +10,7 @@ import {
 import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
+import { PreviewErrorBoundary } from "./PreviewRecovery"
 
 const MarkdownPreview = lazy(() =>
   import("./MarkdownPreview").then((module) => ({ default: module.MarkdownPreview })),
@@ -283,9 +284,11 @@ function DocumentPreview({
     case DocumentFormat.Html:
       return (
         <article className="html-preview">
-          <Suspense fallback={<p>Loading preview...</p>}>
-            <HtmlPreview html={source} zoom={zoom} />
-          </Suspense>
+          <PreviewErrorBoundary resetKey={`html:${zoom}:${source}`}>
+            <Suspense fallback={<p>Loading preview...</p>}>
+              <HtmlPreview html={source} zoom={zoom} />
+            </Suspense>
+          </PreviewErrorBoundary>
           {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
               <Eye size={18} aria-hidden="true" />
@@ -297,11 +300,13 @@ function DocumentPreview({
     case DocumentFormat.Markdown:
       return (
         <article className="markdown-preview">
-          <div className="markdown-body" style={markdownZoomStyle}>
-            <Suspense fallback={<p>Loading preview...</p>}>
-              <MarkdownPreview markdown={source} />
-            </Suspense>
-          </div>
+          <PreviewErrorBoundary resetKey={`markdown:${zoom}:${source}`}>
+            <div className="markdown-body" style={markdownZoomStyle}>
+              <Suspense fallback={<p>Loading preview...</p>}>
+                <MarkdownPreview markdown={source} />
+              </Suspense>
+            </div>
+          </PreviewErrorBoundary>
           {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
               <Eye size={18} aria-hidden="true" />

@@ -2,7 +2,7 @@ import { ChevronRight, FileText, Folder, FolderInput, Pencil, Trash2, Undo2, X }
 import { useMemo, useState } from "react"
 import type { WorkspaceController } from "../app/workspaceController"
 import { buildTree, TreeSortOrder } from "../domain/tree"
-import { NodeKind, type TreeNode } from "../domain/workspace"
+import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
 import { canUseMoveTarget, findTreeNode, formatEditedTime, nextSortOrder } from "./fileTreeModel"
 
 type FileTreeProps = {
@@ -14,17 +14,38 @@ export function FileTree({ workspace }: FileTreeProps) {
   const [sortOrder, setSortOrder] = useState<TreeSortOrder>(TreeSortOrder.Updated)
   const [isManaging, setIsManaging] = useState(false)
   const [isChoosingMoveTarget, setIsChoosingMoveTarget] = useState(false)
+  const [moveSelectionIds, setMoveSelectionIds] = useState<readonly NodeId[]>([])
   const tree = useMemo(() => buildTree(workspace.nodes, sortOrder), [workspace.nodes, sortOrder])
-  const selectedTreeNode = findTreeNode(tree, workspace.selectedNode?.id ?? null)
-  const selectedName = workspace.selectedNode?.name ?? ""
+  const moveSelectedTreeNodes = moveSelectionIds
+    .map((id) => findTreeNode(tree, id))
+    .filter((node) => node !== null)
+  const moveSelectionCount = moveSelectedTreeNodes.length
+  const moveSelectionLabel =
+    moveSelectionCount === 1
+      ? (moveSelectedTreeNodes[0]?.name ?? "selected item")
+      : `${moveSelectionCount} items`
   const sortLabel = sortOrder === TreeSortOrder.Updated ? "Latest" : "Name"
 
   function toggleManageMode(): void {
     if (isManaging) {
       setRenameText("")
+      setMoveSelectionIds([])
     }
     setIsChoosingMoveTarget(false)
     setIsManaging((current) => !current)
+  }
+
+  function toggleMoveSelection(id: NodeId): void {
+    setMoveSelectionIds((current) =>
+      current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id],
+    )
+  }
+
+  function resetMoveMode(): void {
+    setIsChoosingMoveTarget(false)
+    setIsManaging(false)
+    setRenameText("")
+    setMoveSelectionIds([])
   }
 
   return (
@@ -58,12 +79,10 @@ export function FileTree({ workspace }: FileTreeProps) {
               workspace={workspace}
               isManaging={isManaging}
               isChoosingMoveTarget={isChoosingMoveTarget}
-              selectedTreeNode={selectedTreeNode}
-              onMoveDone={() => {
-                setIsChoosingMoveTarget(false)
-                setIsManaging(false)
-                setRenameText("")
-              }}
+              moveSelectionIds={moveSelectionIds}
+              moveSelectedTreeNodes={moveSelectedTreeNodes}
+              onToggleMoveSelection={toggleMoveSelection}
+              onMoveDone={resetMoveMode}
               onManageSelectionChange={() => setRenameText("")}
             />
           ))}
@@ -75,11 +94,7 @@ export function FileTree({ workspace }: FileTreeProps) {
           <button
             type="button"
             onClick={() => {
-              void workspace.moveSelectedToRoot().then(() => {
-                setIsChoosingMoveTarget(false)
-                setIsManaging(false)
-                setRenameText("")
-              })
+              void workspace.moveNodesToRoot(moveSelectionIds).then(resetMoveMode)
             }}
           >
             <Undo2 size={15} aria-hidden="true" />
@@ -93,7 +108,9 @@ export function FileTree({ workspace }: FileTreeProps) {
       ) : null}
 
       {isChoosingMoveTarget ? (
-        <div className="tree-status">Move {selectedName}: choose folder</div>
+        <div className="tree-status">Move {moveSelectionLabel}: choose folder</div>
+      ) : isManaging && moveSelectionCount > 0 ? (
+        <div className="tree-status">{moveSelectionCount} selected for move</div>
       ) : null}
 
       {isManaging ? (
@@ -126,7 +143,7 @@ export function FileTree({ workspace }: FileTreeProps) {
         </button>
         <button
           type="button"
-          disabled={!isManaging || workspace.selectedNode === null}
+          disabled={!isManaging || moveSelectionCount === 0}
           onClick={() => setIsChoosingMoveTarget(true)}
         >
           <Undo2 size={15} aria-hidden="true" />
@@ -152,7 +169,9 @@ type TreeRowProps = {
   readonly workspace: WorkspaceController
   readonly isManaging: boolean
   readonly isChoosingMoveTarget: boolean
-  readonly selectedTreeNode: TreeNode | null
+  readonly moveSelectionIds: readonly NodeId[]
+  readonly moveSelectedTreeNodes: readonly TreeNode[]
+  readonly onToggleMoveSelection: (id: NodeId) => void
   readonly onMoveDone: () => void
   readonly onManageSelectionChange: () => void
 }
@@ -163,7 +182,9 @@ function TreeRow({
   workspace,
   isManaging,
   isChoosingMoveTarget,
-  selectedTreeNode,
+  moveSelectionIds,
+  moveSelectedTreeNodes,
+  onToggleMoveSelection,
   onMoveDone,
   onManageSelectionChange,
 }: TreeRowProps) {
@@ -172,8 +193,9 @@ function TreeRow({
   const isFolder = node.kind === NodeKind.Folder
   const isRootFile = node.kind === NodeKind.File && depth === 0
   const hasChildren = node.children.length > 0
+  const isMoveSelected = moveSelectionIds.includes(node.id)
   const padding = `${12 + depth * 18}px`
-  const canMoveHere = isChoosingMoveTarget && canUseMoveTarget(node, selectedTreeNode)
+  const canMoveHere = isChoosingMoveTarget && canUseMoveTarget(node, moveSelectedTreeNodes)
 
   return (
     <div className={treeNodeClassName(node.kind, hasChildren)}>
@@ -185,7 +207,7 @@ function TreeRow({
         disabled={isChoosingMoveTarget && !canMoveHere}
         onClick={() => {
           if (isChoosingMoveTarget) {
-            void workspace.moveSelectedToFolder(node.id).then(onMoveDone)
+            void workspace.moveNodesToFolder(moveSelectionIds, node.id).then(onMoveDone)
             return
           }
           if (isFolder) {
@@ -193,12 +215,18 @@ function TreeRow({
           }
           if (isManaging) {
             onManageSelectionChange()
+            onToggleMoveSelection(node.id)
             void workspace.selectNodeInTree(node.id)
             return
           }
           void workspace.selectNode(node.id)
         }}
       >
+        {isManaging ? (
+          <span className={moveSelectClassName(isMoveSelected)} aria-hidden="true">
+            {isMoveSelected ? "✓" : ""}
+          </span>
+        ) : null}
         {isFolder ? (
           <ChevronRight
             className={expanded ? "disclosure open" : "disclosure"}
@@ -232,7 +260,9 @@ function TreeRow({
               workspace={workspace}
               isManaging={isManaging}
               isChoosingMoveTarget={isChoosingMoveTarget}
-              selectedTreeNode={selectedTreeNode}
+              moveSelectionIds={moveSelectionIds}
+              moveSelectedTreeNodes={moveSelectedTreeNodes}
+              onToggleMoveSelection={onToggleMoveSelection}
               onMoveDone={onMoveDone}
               onManageSelectionChange={onManageSelectionChange}
             />
@@ -257,4 +287,8 @@ function treeRowClassName(isSelected: boolean, canMoveHere: boolean): string {
   return ["tree-row", isSelected ? "selected" : "", canMoveHere ? "move-target" : ""]
     .filter(Boolean)
     .join(" ")
+}
+
+function moveSelectClassName(isSelected: boolean): string {
+  return ["move-select-indicator", isSelected ? "checked" : ""].filter(Boolean).join(" ")
 }

@@ -11,6 +11,7 @@ import {
   deleteSelected,
   initializeWorkspace,
   moveSelected,
+  moveNodes as moveWorkspaceNodes,
   renameSelected,
   saveSelectedDocument,
   selectNode,
@@ -48,6 +49,8 @@ export type WorkspaceController = {
   readonly deleteSelected: () => Promise<void>
   readonly moveSelectedToRoot: () => Promise<void>
   readonly moveSelectedToFolder: (id: NodeId) => Promise<void>
+  readonly moveNodesToRoot: (ids: readonly NodeId[]) => Promise<void>
+  readonly moveNodesToFolder: (ids: readonly NodeId[], id: NodeId) => Promise<void>
   readonly importDocumentFiles: (files: readonly File[]) => Promise<void>
   readonly importWorkspaceFile: (file: File) => Promise<void>
   readonly exportSelectedDocument: () => void
@@ -136,7 +139,6 @@ export function useWorkspaceController(): WorkspaceController {
       moveSelected({
         repository,
         setState,
-        nodes: state.nodes,
         selectedId: state.selectedId,
         parentId: null,
       }),
@@ -144,8 +146,21 @@ export function useWorkspaceController(): WorkspaceController {
       moveSelected({
         repository,
         setState,
-        nodes: state.nodes,
         selectedId: state.selectedId,
+        parentId: id,
+      }),
+    moveNodesToRoot: (ids) =>
+      moveWorkspaceNodes({
+        repository,
+        setState,
+        selectedIds: ids,
+        parentId: null,
+      }),
+    moveNodesToFolder: (ids, id) =>
+      moveWorkspaceNodes({
+        repository,
+        setState,
+        selectedIds: ids,
         parentId: id,
       }),
     importDocumentFiles: (files) =>

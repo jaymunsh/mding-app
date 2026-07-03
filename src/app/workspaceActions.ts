@@ -1,4 +1,10 @@
-import { findNode, getFolderTarget, uniqueName } from "../domain/tree"
+import {
+  collectDescendantIds,
+  findNode,
+  getFolderTarget,
+  moveNodesToParent,
+  uniqueName,
+} from "../domain/tree"
 import type { WorkspaceNode } from "../domain/workspace"
 import {
   createNodeId,
@@ -24,8 +30,14 @@ type ItemRequest = {
 type MoveRequest = {
   readonly repository: WorkspaceRepository
   readonly setState: StateSetter
-  readonly nodes: readonly WorkspaceNode[]
   readonly selectedId: NodeId | null
+  readonly parentId: NodeId | null
+}
+
+type MoveNodesRequest = {
+  readonly repository: WorkspaceRepository
+  readonly setState: StateSetter
+  readonly selectedIds: readonly NodeId[]
   readonly parentId: NodeId | null
 }
 
@@ -209,43 +221,35 @@ export async function deleteSelected(
 }
 
 export async function moveSelected(request: MoveRequest): Promise<void> {
-  if (request.selectedId === null) {
+  const selectedIds = request.selectedId === null ? [] : [request.selectedId]
+  await moveNodes({ ...request, selectedIds })
+}
+
+export async function moveNodes(request: MoveNodesRequest): Promise<void> {
+  if (request.selectedIds.length === 0) {
     request.setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
-    return
-  }
-
-  if (request.selectedId === request.parentId) {
-    request.setState((current) => ({ ...current, errorMessage: "Choose a different folder." }))
-    return
-  }
-
-  if (request.parentId !== null) {
-    const target = findNode(request.nodes, request.parentId)
-    if (target?.kind !== NodeKind.Folder) {
-      request.setState((current) => ({ ...current, errorMessage: "Choose a folder target." }))
-      return
-    }
-  }
-
-  if (
-    request.parentId !== null &&
-    isDescendant(request.nodes, request.selectedId, request.parentId)
-  ) {
-    request.setState((current) => ({ ...current, errorMessage: "Cannot move into itself." }))
     return
   }
 
   await withError(request.setState, async () => {
     const nodes = await request.repository.listNodes()
-    const node = findNode(nodes, request.selectedId)
-    if (node === null) {
-      throw new Error("Selected item no longer exists.")
-    }
-    await request.repository.saveNode({
-      ...node,
+    const result = moveNodesToParent({
+      nodes,
+      selectedIds: request.selectedIds,
       parentId: request.parentId,
       updatedAt: Date.now(),
     })
+    if (result.kind === "invalid") {
+      request.setState((current) => ({ ...current, errorMessage: result.message }))
+      return
+    }
+    for (const movedId of result.movedIds) {
+      const node = findNode(result.nodes, movedId)
+      if (node === null) {
+        throw new Error("Selected item no longer exists.")
+      }
+      await request.repository.saveNode(node)
+    }
     await refreshAfterMutation(request.repository, request.setState)
   })
 }
@@ -264,20 +268,4 @@ async function withError(setState: StateSetter, operation: () => Promise<void>):
   } catch (error) {
     setState((current) => ({ ...current, errorMessage: messageFromError(error) }))
   }
-}
-
-function collectDescendantIds(
-  nodes: readonly WorkspaceNode[],
-  parentId: NodeId,
-): readonly NodeId[] {
-  const directChildren = nodes.filter((node) => node.parentId === parentId)
-  return directChildren.flatMap((node) => [node.id, ...collectDescendantIds(nodes, node.id)])
-}
-
-function isDescendant(
-  nodes: readonly WorkspaceNode[],
-  ancestorId: NodeId,
-  candidateId: NodeId,
-): boolean {
-  return collectDescendantIds(nodes, ancestorId).includes(candidateId)
 }
