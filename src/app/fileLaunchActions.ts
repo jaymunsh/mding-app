@@ -1,5 +1,5 @@
 import { NodeKind, type WorkspaceNode } from "../domain/workspace"
-import { createSnapshotFromMarkdown, parseMarkdownFiles } from "../storage/importExport"
+import { createSnapshotFromDocumentFiles, parseDocumentFiles } from "../storage/importExport"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
 import { messageFromError, Screen, type StateSetter } from "./workspaceState"
 
@@ -9,14 +9,14 @@ type FileLaunchRequest = {
   readonly files: readonly File[]
 }
 
-export async function openLaunchedMarkdownFiles(request: FileLaunchRequest): Promise<void> {
+export async function openLaunchedDocumentFiles(request: FileLaunchRequest): Promise<void> {
   try {
-    const imports = await parseMarkdownFiles(request.files)
+    const imports = await parseDocumentFiles(request.files)
     if (imports.length === 0) {
       return
     }
 
-    const snapshot = createSnapshotFromMarkdown(imports, null)
+    const snapshot = createSnapshotFromDocumentFiles(imports, null)
     const firstNode = firstFileNode(snapshot.nodes)
     if (firstNode === null) {
       return

@@ -2,9 +2,11 @@ import type { IDBPDatabase } from "idb"
 import type { WorkspaceSnapshot } from "../domain/workspace"
 import {
   createNodeId,
+  DocumentFormat,
   type NodeId,
   NodeKind,
   type WorkspaceDocument,
+  WorkspaceDocumentSchema,
   type WorkspaceNode,
 } from "../domain/workspace"
 import { type MdingDatabase, openWorkspaceDatabase } from "./database"
@@ -52,6 +54,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
     const document = {
       id: welcomeId,
       markdown: WELCOME_MARKDOWN,
+      format: DocumentFormat.Markdown,
       updatedAt: now,
     }
 
@@ -68,12 +71,14 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
 
   async listDocuments(): Promise<readonly WorkspaceDocument[]> {
     const database = await this.#openDatabase()
-    return database.getAll("documents")
+    const documents = await database.getAll("documents")
+    return documents.map((document) => WorkspaceDocumentSchema.parse(document))
   }
 
   async getDocument(id: NodeId): Promise<WorkspaceDocument | null> {
     const database = await this.#openDatabase()
-    return (await database.get("documents", id)) ?? null
+    const document = await database.get("documents", id)
+    return document === undefined ? null : WorkspaceDocumentSchema.parse(document)
   }
 
   async saveNode(node: WorkspaceNode): Promise<void> {

@@ -21,6 +21,7 @@ export default defineConfig({
           {
             action: "/",
             accept: {
+              "text/html": [".html", ".htm"],
               "text/markdown": [".md", ".markdown"],
               "text/plain": [".md", ".markdown"],
             },

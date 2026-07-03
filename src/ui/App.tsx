@@ -22,7 +22,7 @@ import { FileTree } from "./FileTree"
 
 export function App() {
   const workspace = useWorkspaceController()
-  const markdownInputRef = useRef<HTMLInputElement>(null)
+  const documentInputRef = useRef<HTMLInputElement>(null)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
   const [themePreference, setThemePreference] = useState(readThemePreference)
 
@@ -35,7 +35,7 @@ export function App() {
     <div className={`app-shell screen-${workspace.screen}`}>
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">m</span>
+          <img className="brand-mark" src="/icons/icon.svg" alt="" aria-hidden="true" />
           <div>
             <strong>mding</strong>
             <span>
@@ -65,11 +65,11 @@ export function App() {
           <button
             className="toolbar-button"
             type="button"
-            onClick={() => markdownInputRef.current?.click()}
-            aria-label="Import md"
+            onClick={() => documentInputRef.current?.click()}
+            aria-label="Import file"
           >
             <FileInput size={17} aria-hidden="true" />
-            <span>Import md</span>
+            <span>Import file</span>
           </button>
           <button
             className="toolbar-button"
@@ -84,7 +84,7 @@ export function App() {
             className="toolbar-button primary"
             type="button"
             onClick={workspace.exportWorkspace}
-            aria-label="Export backup"
+            aria-label="Backup"
           >
             <Download size={17} aria-hidden="true" />
             <span>Backup</span>
@@ -142,16 +142,16 @@ export function App() {
       </main>
 
       <input
-        ref={markdownInputRef}
+        ref={documentInputRef}
         className="hidden-input"
         type="file"
-        aria-label="Import Markdown files"
-        accept=".md,text/markdown,text/plain"
+        aria-label="Import Markdown or HTML files"
+        accept=".md,.markdown,.html,.htm,text/markdown,text/html,text/plain"
         multiple
         onChange={(event) => {
           const files = event.currentTarget.files
           if (files !== null) {
-            void workspace.importMarkdownFiles(Array.from(files))
+            void workspace.importDocumentFiles(Array.from(files))
           }
           event.currentTarget.value = ""
         }}

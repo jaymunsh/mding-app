@@ -7,6 +7,13 @@ export const NodeKind = {
 
 export type NodeKind = (typeof NodeKind)[keyof typeof NodeKind]
 
+export const DocumentFormat = {
+  Html: "html",
+  Markdown: "markdown",
+} as const
+
+export type DocumentFormat = (typeof DocumentFormat)[keyof typeof DocumentFormat]
+
 export const NodeIdSchema = z.string().uuid().brand<"NodeId">()
 export type NodeId = z.infer<typeof NodeIdSchema>
 
@@ -22,6 +29,7 @@ export type WorkspaceNode = {
 export type WorkspaceDocument = {
   readonly id: NodeId
   readonly markdown: string
+  readonly format: DocumentFormat
   readonly updatedAt: number
 }
 
@@ -46,6 +54,9 @@ export const WorkspaceNodeSchema = z.object({
 export const WorkspaceDocumentSchema = z.object({
   id: NodeIdSchema,
   markdown: z.string(),
+  format: z
+    .union([z.literal(DocumentFormat.Html), z.literal(DocumentFormat.Markdown)])
+    .default(DocumentFormat.Markdown),
   updatedAt: z.number().int().nonnegative(),
 })
 
@@ -60,4 +71,8 @@ export function createNodeId(): NodeId {
 
 export function isMarkdownFile(node: WorkspaceNode): boolean {
   return node.kind === NodeKind.File && node.name.toLowerCase().endsWith(".md")
+}
+
+export function isEditableDocument(document: WorkspaceDocument | null): boolean {
+  return document?.format === DocumentFormat.Markdown
 }

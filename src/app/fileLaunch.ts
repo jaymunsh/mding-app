@@ -14,12 +14,12 @@ declare global {
   }
 }
 
-type MarkdownLaunchHandler = {
+type DocumentLaunchHandler = {
   readonly openFiles: (files: readonly File[]) => Promise<void>
   readonly reportError: (message: string) => void
 }
 
-export function registerMarkdownLaunchHandler(handler: MarkdownLaunchHandler): boolean {
+export function registerDocumentLaunchHandler(handler: DocumentLaunchHandler): boolean {
   const launchQueue = window.launchQueue
   if (launchQueue === undefined) {
     return false
@@ -33,7 +33,7 @@ export function registerMarkdownLaunchHandler(handler: MarkdownLaunchHandler): b
 
 async function openLaunchedFiles(
   handles: readonly FileSystemFileHandle[],
-  handler: MarkdownLaunchHandler,
+  handler: DocumentLaunchHandler,
 ): Promise<void> {
   try {
     const files = await Promise.all(handles.map((handle) => handle.getFile()))

@@ -1,44 +1,34 @@
 import {
-  createNodeId,
+  type DocumentFormat as DocumentFormatValue,
   type NodeId,
   NodeKind,
   type WorkspaceSnapshot,
   WorkspaceSnapshotSchema,
 } from "../domain/workspace"
+import { documentFilename } from "./documentFiles"
 import { createStoredZipBlob, readStoredZipEntries, readStoredZipEntryNames } from "./zip"
 
+export {
+  createDocumentFileBlob,
+  createMarkdownFileBlob,
+  createSnapshotFromDocumentFiles,
+  createSnapshotFromMarkdown,
+  type DocumentFileImport,
+  isHtmlFilename,
+  isMarkdownFilename,
+  type MarkdownImport,
+  parseDocumentFiles,
+  parseMarkdownFiles,
+} from "./documentFiles"
 export { readStoredZipEntryNames }
 
-export type MarkdownImport = {
-  readonly name: string
-  readonly markdown: string
-}
-
-type MarkdownZipEntry = {
+type DocumentZipEntry = {
   readonly path: string
-  readonly markdown: string
+  readonly content: string
 }
 
-const markdownExtensions = [".md", ".markdown"] as const
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
-
-export function isMarkdownFilename(name: string): boolean {
-  const normalizedName = name.toLowerCase()
-  return markdownExtensions.some((extension) => normalizedName.endsWith(extension))
-}
-
-export async function parseMarkdownFiles(
-  files: readonly File[],
-): Promise<readonly MarkdownImport[]> {
-  const markdownFiles = files.filter((file) => isMarkdownFilename(file.name))
-  return Promise.all(
-    markdownFiles.map(async (file) => ({
-      name: file.name,
-      markdown: await file.text(),
-    })),
-  )
-}
 
 export async function parseWorkspaceBackupFile(file: File): Promise<WorkspaceSnapshot> {
   if (isZipBackupFile(file)) {
@@ -61,51 +51,17 @@ export function parseWorkspaceBackupZip(buffer: ArrayBuffer): WorkspaceSnapshot 
   return parseWorkspaceBackupJson(textDecoder.decode(manifest.content))
 }
 
-export function createMarkdownFileBlob(markdown: string): Blob {
-  return new Blob([markdown], { type: "text/markdown;charset=utf-8" })
-}
-
 export function createWorkspaceBackupBlob(snapshot: WorkspaceSnapshot): Blob {
   return createStoredZipBlob([
     {
       path: "manifest.json",
       content: textEncoder.encode(JSON.stringify(snapshot, null, 2)),
     },
-    ...createMarkdownZipEntries(snapshot).map((entry) => ({
+    ...createDocumentZipEntries(snapshot).map((entry) => ({
       path: entry.path,
-      content: textEncoder.encode(entry.markdown),
+      content: textEncoder.encode(entry.content),
     })),
   ])
-}
-
-export function createSnapshotFromMarkdown(
-  imports: readonly MarkdownImport[],
-  parentId: NodeId | null,
-): WorkspaceSnapshot {
-  const now = Date.now()
-  const nodes = imports.map((item) => {
-    const id = createNodeId()
-    return {
-      node: {
-        id,
-        parentId,
-        kind: NodeKind.File,
-        name: item.name,
-        createdAt: now,
-        updatedAt: now,
-      },
-      document: {
-        id,
-        markdown: item.markdown,
-        updatedAt: now,
-      },
-    }
-  })
-
-  return {
-    nodes: nodes.map((item) => item.node),
-    documents: nodes.map((item) => item.document),
-  }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
@@ -141,7 +97,7 @@ function isZipBackupFile(file: File): boolean {
   )
 }
 
-function createMarkdownZipEntries(snapshot: WorkspaceSnapshot): readonly MarkdownZipEntry[] {
+function createDocumentZipEntries(snapshot: WorkspaceSnapshot): readonly DocumentZipEntry[] {
   const nodesById = new Map(snapshot.nodes.map((node) => [node.id, node]))
   const documentsById = new Map(snapshot.documents.map((document) => [document.id, document]))
   const usedPaths = new Set<string>()
@@ -156,14 +112,15 @@ function createMarkdownZipEntries(snapshot: WorkspaceSnapshot): readonly Markdow
       return []
     }
 
-    const path = uniqueZipPath(markdownZipPath(node.id, nodesById), usedPaths)
-    return [{ path, markdown: document.markdown }]
+    const path = uniqueZipPath(documentZipPath(node.id, nodesById, document.format), usedPaths)
+    return [{ path, content: document.markdown }]
   })
 }
 
-function markdownZipPath(
+function documentZipPath(
   nodeId: NodeId,
   nodesById: ReadonlyMap<NodeId, WorkspaceSnapshot["nodes"][number]>,
+  format: DocumentFormatValue,
 ): string {
   const parts: string[] = []
   let currentId: NodeId | null = nodeId
@@ -174,7 +131,7 @@ function markdownZipPath(
       break
     }
 
-    const name = currentId === nodeId ? markdownFilename(node.name) : node.name
+    const name = currentId === nodeId ? documentFilename(node.name, format) : node.name
     parts.unshift(sanitizeZipSegment(name))
     currentId = node.parentId
   }
@@ -182,13 +139,9 @@ function markdownZipPath(
   return `workspace/${parts.join("/")}`
 }
 
-function markdownFilename(name: string): string {
-  return isMarkdownFilename(name) ? name : `${name}.md`
-}
-
 function sanitizeZipSegment(segment: string): string {
   const sanitized = segment.replace(/[\\/]/g, "-").trim()
-  return sanitized.length === 0 ? "Untitled.md" : sanitized
+  return sanitized.length === 0 ? "Untitled" : sanitized
 }
 
 function uniqueZipPath(path: string, usedPaths: Set<string>): string {

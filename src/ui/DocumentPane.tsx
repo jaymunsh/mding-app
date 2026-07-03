@@ -1,10 +1,14 @@
 import { ArrowLeft, Check, Download, Eye, Pencil, X } from "lucide-react"
 import { lazy, Suspense } from "react"
 import type { WorkspaceController } from "../app/workspaceController"
-import { NodeKind } from "../domain/workspace"
+import { assertNever } from "../domain/result"
+import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
 
 const MarkdownPreview = lazy(() =>
   import("./MarkdownPreview").then((module) => ({ default: module.MarkdownPreview })),
+)
+const HtmlPreview = lazy(() =>
+  import("./HtmlPreview").then((module) => ({ default: module.HtmlPreview })),
 )
 
 type DocumentPaneProps = {
@@ -16,15 +20,20 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
     return (
       <section className="document-pane empty-document" aria-label="No document selected">
         <div>
-          <h1>Select a Markdown file</h1>
-          <p>Create or import files, then open one to preview and edit offline.</p>
+          <h1>Select a file</h1>
+          <p>Create Markdown files or import Markdown and HTML files to preview offline.</p>
         </div>
       </section>
     )
   }
 
+  const selectedDocument = workspace.selectedDocument
+  const documentFormat = selectedDocument?.format ?? DocumentFormat.Markdown
+  const canEdit = isEditableDocument(selectedDocument)
+  const exportLabel = documentFormat === DocumentFormat.Html ? "Export html" : "Export md"
+
   return (
-    <section className="document-pane" aria-label="Markdown document">
+    <section className="document-pane" aria-label="Document">
       <header className="document-header">
         <div className="document-title-group">
           <button className="document-back" type="button" onClick={workspace.showBrowser}>
@@ -37,7 +46,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
           </div>
         </div>
         <div className="document-actions">
-          {workspace.isEditing ? (
+          {workspace.isEditing && canEdit ? (
             <>
               <button type="button" onClick={workspace.cancelEditing} aria-label="Cancel">
                 <X size={16} aria-hidden="true" />
@@ -57,21 +66,23 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
             <>
               <button
                 type="button"
-                onClick={workspace.exportSelectedMarkdown}
-                aria-label="Export md"
+                onClick={workspace.exportSelectedDocument}
+                aria-label={exportLabel}
               >
                 <Download size={16} aria-hidden="true" />
-                <span>Export md</span>
+                <span>{exportLabel}</span>
               </button>
-              <button
-                className="primary"
-                type="button"
-                onClick={workspace.startEditing}
-                aria-label="Edit"
-              >
-                <Pencil size={16} aria-hidden="true" />
-                <span>Edit</span>
-              </button>
+              {canEdit ? (
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={workspace.startEditing}
+                  aria-label="Edit"
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                  <span>Edit</span>
+                </button>
+              ) : null}
             </>
           )}
         </div>
@@ -87,20 +98,54 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
           />
         </label>
       ) : (
+        <DocumentPreview
+          documentFormat={documentFormat}
+          source={selectedDocument?.markdown ?? ""}
+        />
+      )}
+    </section>
+  )
+}
+
+function DocumentPreview({
+  documentFormat,
+  source,
+}: {
+  readonly documentFormat: DocumentFormat
+  readonly source: string
+}) {
+  switch (documentFormat) {
+    case DocumentFormat.Html:
+      return (
+        <article className="html-preview">
+          <Suspense fallback={<p>Loading preview...</p>}>
+            <HtmlPreview html={source} />
+          </Suspense>
+          {source.trim().length === 0 ? (
+            <div className="empty-state document-empty">
+              <Eye size={18} aria-hidden="true" />
+              This HTML file is empty.
+            </div>
+          ) : null}
+        </article>
+      )
+    case DocumentFormat.Markdown:
+      return (
         <article className="markdown-preview">
           <div className="markdown-body">
             <Suspense fallback={<p>Loading preview...</p>}>
-              <MarkdownPreview markdown={workspace.selectedDocument?.markdown ?? ""} />
+              <MarkdownPreview markdown={source} />
             </Suspense>
           </div>
-          {workspace.selectedDocument?.markdown.trim().length === 0 ? (
+          {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
               <Eye size={18} aria-hidden="true" />
               This Markdown file is empty.
             </div>
           ) : null}
         </article>
-      )}
-    </section>
-  )
+      )
+    default:
+      return assertNever(documentFormat)
+  }
 }

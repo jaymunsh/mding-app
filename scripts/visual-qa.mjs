@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises"
 import { chromium } from "playwright"
 
-const baseUrl = "http://127.0.0.1:4173/"
+const baseUrl = process.env.PWA_BASE_URL ?? "http://127.0.0.1:4173/"
 const evidenceDir = "docs/verification/pwa-screenshots"
 
 async function capture(viewport, name) {
@@ -78,7 +78,7 @@ graph TD
 \`\`\`
 
 ${longMarkdown}`
-  await page.locator("input[aria-label='Import Markdown files']").setInputFiles({
+  await page.locator("input[aria-label='Import Markdown or HTML files']").setInputFiles({
     name: "long.md",
     mimeType: "text/markdown",
     buffer: Buffer.from(markdown),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { WorkspaceDocument, WorkspaceNode } from "../domain/workspace"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
-import { openLaunchedMarkdownFiles } from "./fileLaunchActions"
+import { openLaunchedDocumentFiles } from "./fileLaunchActions"
 import { initialState, Screen, type StateSetter } from "./workspaceState"
 
 describe("file launch actions", () => {
@@ -13,7 +13,7 @@ describe("file launch actions", () => {
     }
     const file = new File(["# From Finder"], "finder.md", { type: "text/markdown" })
 
-    await openLaunchedMarkdownFiles({ repository, setState, files: [file] })
+    await openLaunchedDocumentFiles({ repository, setState, files: [file] })
 
     expect(state.nodes).toHaveLength(1)
     expect(state.selectedDocument?.markdown).toBe("# From Finder")

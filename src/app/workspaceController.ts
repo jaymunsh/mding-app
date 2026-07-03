@@ -4,15 +4,11 @@ import { buildTree, findNode } from "../domain/tree"
 import type { WorkspaceNode } from "../domain/workspace"
 import { type NodeId, NodeKind, type TreeNode, type WorkspaceDocument } from "../domain/workspace"
 import { createWorkspaceRepository } from "../storage/workspaceRepository"
-import { registerMarkdownLaunchHandler } from "./fileLaunch"
-import { openLaunchedMarkdownFiles } from "./fileLaunchActions"
+import { registerDocumentLaunchHandler } from "./fileLaunch"
+import { openLaunchedDocumentFiles } from "./fileLaunchActions"
 import {
   createItem,
   deleteSelected,
-  exportSelectedMarkdown,
-  exportWorkspace,
-  importMarkdownFiles,
-  importWorkspaceFile,
   initializeWorkspace,
   moveSelectedToRoot,
   renameSelected,
@@ -20,6 +16,12 @@ import {
   selectNode,
 } from "./workspaceActions"
 import { initialState, Screen } from "./workspaceState"
+import {
+  exportSelectedDocument,
+  exportWorkspace,
+  importDocumentFiles,
+  importWorkspaceFile,
+} from "./workspaceTransferActions"
 
 export { Screen }
 
@@ -45,9 +47,9 @@ export type WorkspaceController = {
   readonly renameSelected: (name: string) => Promise<void>
   readonly deleteSelected: () => Promise<void>
   readonly moveSelectedToRoot: () => Promise<void>
-  readonly importMarkdownFiles: (files: readonly File[]) => Promise<void>
+  readonly importDocumentFiles: (files: readonly File[]) => Promise<void>
   readonly importWorkspaceFile: (file: File) => Promise<void>
-  readonly exportSelectedMarkdown: () => void
+  readonly exportSelectedDocument: () => void
   readonly exportWorkspace: () => Promise<void>
   readonly clearError: () => void
 }
@@ -61,8 +63,8 @@ export function useWorkspaceController(): WorkspaceController {
   }, [repository])
 
   useEffect(() => {
-    registerMarkdownLaunchHandler({
-      openFiles: (files) => openLaunchedMarkdownFiles({ repository, setState, files }),
+    registerDocumentLaunchHandler({
+      openFiles: (files) => openLaunchedDocumentFiles({ repository, setState, files }),
       reportError: (message) => setState((current) => ({ ...current, errorMessage: message })),
     })
   }, [repository])
@@ -112,8 +114,8 @@ export function useWorkspaceController(): WorkspaceController {
     renameSelected: (name) => renameSelected(repository, setState, state.selectedId, name),
     deleteSelected: () => deleteSelected(repository, setState, state.nodes, state.selectedId),
     moveSelectedToRoot: () => moveSelectedToRoot(repository, setState, state.selectedId),
-    importMarkdownFiles: (files) =>
-      importMarkdownFiles({
+    importDocumentFiles: (files) =>
+      importDocumentFiles({
         repository,
         setState,
         nodes: state.nodes,
@@ -121,7 +123,7 @@ export function useWorkspaceController(): WorkspaceController {
         files,
       }),
     importWorkspaceFile: (file) => importWorkspaceFile(repository, setState, file),
-    exportSelectedMarkdown: () => exportSelectedMarkdown(selectedNode, state.selectedDocument),
+    exportSelectedDocument: () => exportSelectedDocument(selectedNode, state.selectedDocument),
     exportWorkspace: () => exportWorkspace(repository, setState),
     clearError: () => setState((current) => ({ ...current, errorMessage: null })),
   }

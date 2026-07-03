@@ -1,7 +1,7 @@
 import * as chromeLauncher from "chrome-launcher"
 import lighthouse from "lighthouse"
 
-const url = "http://127.0.0.1:4173/"
+const url = process.env.PWA_BASE_URL ?? "http://127.0.0.1:4173/"
 
 async function audit(formFactor) {
   const chrome = await chromeLauncher.launch({

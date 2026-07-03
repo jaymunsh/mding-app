@@ -1,16 +1,14 @@
 import { findNode, getFolderTarget, uniqueName } from "../domain/tree"
 import type { WorkspaceNode } from "../domain/workspace"
-import { createNodeId, type NodeId, NodeKind, type WorkspaceDocument } from "../domain/workspace"
 import {
-  createMarkdownFileBlob,
-  createSnapshotFromMarkdown,
-  createWorkspaceBackupBlob,
-  downloadBlob,
-  formatBackupDate,
-  parseMarkdownFiles,
-  parseWorkspaceBackupFile,
-  requestPersistentStorage,
-} from "../storage/importExport"
+  createNodeId,
+  DocumentFormat,
+  isEditableDocument,
+  type NodeId,
+  NodeKind,
+  type WorkspaceDocument,
+} from "../domain/workspace"
+import { requestPersistentStorage } from "../storage/importExport"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
 import { messageFromError, Screen, type StateSetter } from "./workspaceState"
 
@@ -20,14 +18,6 @@ type ItemRequest = {
   readonly nodes: readonly WorkspaceNode[]
   readonly selectedId: NodeId | null
   readonly kind: NodeKind
-}
-
-type MarkdownImportRequest = {
-  readonly repository: WorkspaceRepository
-  readonly setState: StateSetter
-  readonly nodes: readonly WorkspaceNode[]
-  readonly selectedId: NodeId | null
-  readonly files: readonly File[]
 }
 
 export async function initializeWorkspace(
@@ -75,7 +65,12 @@ export async function saveSelectedDocument(
   editBuffer: string,
 ): Promise<void> {
   if (selectedDocument === null) {
-    setState((current) => ({ ...current, errorMessage: "Select a Markdown file first." }))
+    setState((current) => ({ ...current, errorMessage: "Select a file first." }))
+    return
+  }
+
+  if (!isEditableDocument(selectedDocument)) {
+    setState((current) => ({ ...current, errorMessage: "HTML files are preview-only." }))
     return
   }
 
@@ -101,7 +96,12 @@ export async function createItem(request: ItemRequest): Promise<void> {
   await withError(request.setState, async () => {
     await request.repository.saveNode(node)
     if (request.kind === NodeKind.File) {
-      await request.repository.saveDocument({ id, markdown: "", updatedAt: now })
+      await request.repository.saveDocument({
+        id,
+        markdown: "",
+        format: DocumentFormat.Markdown,
+        updatedAt: now,
+      })
     }
     const nodes = await request.repository.listNodes()
     request.setState((current) => ({
@@ -109,7 +109,9 @@ export async function createItem(request: ItemRequest): Promise<void> {
       nodes,
       selectedId: id,
       selectedDocument:
-        request.kind === NodeKind.File ? { id, markdown: "", updatedAt: now } : null,
+        request.kind === NodeKind.File
+          ? { id, markdown: "", format: DocumentFormat.Markdown, updatedAt: now }
+          : null,
       editBuffer: "",
       isEditing: request.kind === NodeKind.File,
       screen: request.kind === NodeKind.File ? Screen.Document : current.screen,
@@ -192,57 +194,6 @@ export async function moveSelectedToRoot(
     }
     await repository.saveNode({ ...node, parentId: null, updatedAt: Date.now() })
     await refreshAfterMutation(repository, setState)
-  })
-}
-
-export async function importMarkdownFiles(request: MarkdownImportRequest): Promise<void> {
-  await withError(request.setState, async () => {
-    const parentId = getFolderTarget(request.nodes, request.selectedId)
-    const imports = await parseMarkdownFiles(request.files)
-    const snapshot = createSnapshotFromMarkdown(imports, parentId)
-    for (const node of snapshot.nodes) {
-      await request.repository.saveNode(node)
-    }
-    for (const document of snapshot.documents) {
-      await request.repository.saveDocument(document)
-    }
-    await refreshAfterMutation(request.repository, request.setState)
-  })
-}
-
-export async function importWorkspaceFile(
-  repository: WorkspaceRepository,
-  setState: StateSetter,
-  file: File,
-): Promise<void> {
-  await withError(setState, async () => {
-    const snapshot = await parseWorkspaceBackupFile(file)
-    await repository.importSnapshot(snapshot)
-    const nodes = await repository.listNodes()
-    setState((current) => ({ ...current, nodes, selectedId: null, selectedDocument: null }))
-  })
-}
-
-export function exportSelectedMarkdown(
-  node: WorkspaceNode | null,
-  document: WorkspaceDocument | null,
-): void {
-  if (node === null || document === null) {
-    return
-  }
-  downloadBlob(createMarkdownFileBlob(document.markdown), node.name)
-}
-
-export async function exportWorkspace(
-  repository: WorkspaceRepository,
-  setState: StateSetter,
-): Promise<void> {
-  await withError(setState, async () => {
-    const snapshot = {
-      nodes: await repository.listNodes(),
-      documents: await repository.listDocuments(),
-    }
-    downloadBlob(createWorkspaceBackupBlob(snapshot), `mding-${formatBackupDate(new Date())}.zip`)
   })
 }
 

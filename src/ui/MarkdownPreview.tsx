@@ -21,7 +21,7 @@ type MermaidDiagramProps = {
 }
 
 type MermaidApi = typeof import("mermaid").default
-type MermaidColorMode = "dark" | "light"
+export type MermaidColorMode = "dark" | "light"
 
 const CALLOUT_LABELS = {
   bug: "Bug",
@@ -436,9 +436,7 @@ function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
     async function renderDiagram(): Promise<void> {
       try {
-        const mermaid = await loadMermaid()
-        mermaid.initialize(createMermaidConfig(colorMode))
-        const { svg } = await mermaid.render(`${id}-${colorMode}`, chart)
+        const svg = await renderMermaidSvg(chart, colorMode, `${id}-${colorMode}`)
         if (!cancelled && containerRef.current !== null) {
           containerRef.current.innerHTML = svg
           setErrorMessage(null)
@@ -480,6 +478,17 @@ function loadMermaid(): Promise<MermaidApi> {
   return mermaidApiPromise
 }
 
+export async function renderMermaidSvg(
+  chart: string,
+  colorMode: MermaidColorMode,
+  id: string,
+): Promise<string> {
+  const mermaid = await loadMermaid()
+  mermaid.initialize(createMermaidConfig(colorMode))
+  const { svg } = await mermaid.render(id, chart)
+  return svg
+}
+
 function createMermaidConfig(colorMode: MermaidColorMode) {
   const isDark = colorMode === "dark"
 
@@ -505,7 +514,7 @@ function createMermaidConfig(colorMode: MermaidColorMode) {
   } as const
 }
 
-function useMermaidColorMode(): MermaidColorMode {
+export function useMermaidColorMode(): MermaidColorMode {
   const [colorMode, setColorMode] = useState(readMermaidColorMode)
 
   useEffect(() => {

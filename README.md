@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
-mding is a lightweight local-first Markdown workspace packaged as a Progressive Web App. It started as a personal iOS/macOS Markdown viewer/editor idea, then moved to a PWA so the same app could run on iPhone, iPad, Mac, and Android without TestFlight, sideloading, or a native app-store release.
+mding is a lightweight local-first Markdown workspace packaged as a Progressive Web App, with read-only HTML preview support for reference files. It started as a personal iOS/macOS Markdown viewer/editor idea, then moved to a PWA so the same app could run on iPhone, iPad, Mac, and Android without TestFlight, sideloading, or a native app-store release.
 
 The goal is simple: keep a small Markdown workspace on the device, open files quickly, preview them cleanly, edit when needed, and export backups before moving devices or clearing browser data.
 
@@ -19,11 +19,17 @@ After the first successful online load, the app shell and built assets are cache
 
 - Create, rename, delete, and organize Markdown files and folders in an app-local workspace.
 - Preview Markdown, switch to source editing, and save locally.
-- Import `.md` and `.markdown` files into the workspace.
-- Export the current Markdown file or the whole workspace backup.
+- Import `.md`, `.markdown`, `.html`, and `.htm` files into the workspace.
+- Export the current document file or the whole workspace backup.
 - Run offline after installation through the browser PWA cache.
-- Register `.md` / `.markdown` file handling on macOS when installed through Chromium browsers.
+- Register Markdown and HTML file handling on macOS when installed through Chromium browsers.
 - Support light mode, dark mode, and compact mobile layouts.
+
+## HTML Preview
+
+HTML files are intentionally preview-only. mding stores the single imported `.html` / `.htm` file in the same local workspace, renders it inside a sandboxed iframe, and removes executable embedded elements before previewing. Static Mermaid blocks such as `<pre class="mermaid">`, `<div class="mermaid">`, and `<code class="language-mermaid">` are rendered by mding before the iframe loads.
+
+Editing HTML and managing external local asset folders are out of scope for now. Remote URLs, data URLs, and inline CSS can work if the browser can resolve them.
 
 ## Markdown Support
 
@@ -55,9 +61,9 @@ This makes editing and reading local documents work offline after installation, 
 Current backup flow:
 
 - `Backup` downloads the whole workspace as a zip file.
-- The zip contains `manifest.json` for exact app restore plus readable `.md` files under `workspace/`.
+- The zip contains `manifest.json` for exact app restore plus readable `.md` and `.html` files under `workspace/`.
 - `Import backup` restores mding zip backups and older JSON backups into the app-local workspace.
-- Individual Markdown files can still be imported/exported separately.
+- Individual Markdown and HTML files can still be imported/exported separately.
 
 Future backup options worth considering:
 
