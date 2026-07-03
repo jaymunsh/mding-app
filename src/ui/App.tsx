@@ -146,7 +146,6 @@ export function App() {
         className="hidden-input"
         type="file"
         aria-label="Import Markdown or HTML files"
-        accept=".md,.markdown,.html,.htm,text/markdown,text/html,text/plain"
         multiple
         onChange={(event) => {
           const files = event.currentTarget.files
