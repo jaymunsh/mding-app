@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { createHtmlPreviewBridgeScript } from "./htmlPreviewBridge"
 import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./MarkdownPreview"
 
 type HtmlPreviewProps = {
@@ -44,6 +45,7 @@ async function createHtmlPreviewDocument(
   const document = new DOMParser().parseFromString(html, "text/html")
   injectPreviewStyle(document, colorMode)
   await renderMermaidBlocks(document, colorMode, idPrefix)
+  injectPreviewBridge(document, colorMode)
   return `<!doctype html>${document.documentElement.outerHTML}`
 }
 
@@ -57,6 +59,12 @@ function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): vo
   const style = document.createElement("style")
   style.textContent = previewStyle(colorMode)
   document.head.append(style)
+}
+
+function injectPreviewBridge(document: Document, colorMode: MermaidColorMode): void {
+  const script = document.createElement("script")
+  script.textContent = createHtmlPreviewBridgeScript(colorMode)
+  document.body.append(script)
 }
 
 async function renderMermaidBlocks(
@@ -121,59 +129,10 @@ function mermaidReplaceTarget(element: Element): Element {
 
 function previewStyle(colorMode: MermaidColorMode): string {
   const isDark = colorMode === "dark"
-  const foreground = isDark ? "#f3f4ed" : "#181916"
-  const secondary = isDark ? "#a9ada1" : "#65685f"
-  const background = isDark ? "#0c0d0b" : "#ffffff"
   const inset = isDark ? "#111210" : "#f7f7f4"
   const border = isDark ? "#31342e" : "#d9dbd2"
-  const accent = isDark ? "#60b49d" : "#2f6f5e"
 
   return `
-    :root {
-      color-scheme: ${colorMode};
-      color: ${foreground};
-      background: ${background};
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    body {
-      box-sizing: border-box;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      color: ${foreground};
-      background: ${background};
-      line-height: 1.6;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    img, svg, video, canvas {
-      max-width: 100%;
-      height: auto;
-    }
-
-    a {
-      color: ${accent};
-    }
-
-    pre, code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    }
-
-    pre {
-      overflow-x: auto;
-    }
-
-    blockquote {
-      margin-left: 0;
-      padding-left: 16px;
-      color: ${secondary};
-      border-left: 3px solid ${accent};
-    }
-
     .mermaid-diagram,
     .mermaid-error {
       overflow-x: auto;
