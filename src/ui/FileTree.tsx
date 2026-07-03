@@ -41,13 +41,10 @@ export function FileTree({ workspace }: FileTreeProps) {
               {sortLabel}
             </button>
           </div>
-          {isChoosingMoveTarget ? (
-            <small>Move {selectedName}: choose folder</small>
-          ) : isManaging ? (
-            <small>Manage mode</small>
-          ) : null}
         </div>
-        <span>{workspace.nodes.length} items</span>
+        <div className="panel-heading-side">
+          <span>{workspace.nodes.length} items</span>
+        </div>
       </div>
       {tree.length === 0 ? (
         <div className="empty-state">Create a Markdown file to start.</div>
@@ -93,6 +90,10 @@ export function FileTree({ workspace }: FileTreeProps) {
             Cancel
           </button>
         </div>
+      ) : null}
+
+      {isChoosingMoveTarget ? (
+        <div className="tree-status">Move {selectedName}: choose folder</div>
       ) : null}
 
       {isManaging ? (

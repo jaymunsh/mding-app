@@ -208,8 +208,7 @@ img.brand-mark {
 
 .toolbar-group,
 .topbar-controls,
-.document-actions,
-.tree-actions {
+.document-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -533,6 +532,7 @@ img.brand-mark {
 
 .panel-heading {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -544,6 +544,7 @@ img.brand-mark {
 
 .panel-heading-main {
   display: grid;
+  min-width: 0;
   gap: 2px;
 }
 
@@ -553,13 +554,17 @@ img.brand-mark {
   gap: var(--space-2);
 }
 
-.panel-heading small {
-  overflow: hidden;
-  max-width: 150px;
-  color: var(--accent-primary);
-  font-size: 11px;
-  font-weight: 600;
-  text-overflow: ellipsis;
+.panel-heading-side {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  text-align: right;
+}
+
+.panel-heading-side span {
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
@@ -585,6 +590,10 @@ img.brand-mark {
 
 .tree-node {
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.tree-node.folder-node.has-children {
+  border-bottom: 0;
 }
 
 .tree-row {
@@ -673,6 +682,17 @@ img.brand-mark {
   flex: 1;
 }
 
+.tree-status {
+  overflow: hidden;
+  padding: var(--space-2) var(--space-3);
+  color: var(--accent-primary);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rename-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -692,11 +712,16 @@ img.brand-mark {
 }
 
 .tree-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
   padding: 0 var(--space-3) var(--space-3);
 }
 
 .tree-actions button {
-  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  font-size: 13px;
 }
 
 .tree-actions button.selected {
@@ -712,6 +737,30 @@ img.brand-mark {
   min-width: 0;
   min-height: 0;
   flex: 1;
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--surface-primary) 72%, transparent);
+}
+
+.drop-overlay-surface {
+  display: grid;
+  width: min(320px, calc(100vw - var(--space-8)));
+  min-height: 120px;
+  place-items: center;
+  border: 1px dashed var(--accent-primary);
+  border-radius: 8px;
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  font-size: 16px;
+  font-weight: 650;
 }
 
 .document-header {
