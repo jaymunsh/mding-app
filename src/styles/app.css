@@ -105,13 +105,19 @@ button {
     transform 120ms ease-out;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   border-color: var(--accent-primary);
   background: var(--surface-inset);
 }
 
-button:active {
+button:active:not(:disabled) {
   transform: translateY(1px);
+}
+
+button:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+  opacity: 0.68;
 }
 
 button:focus-visible,
@@ -139,8 +145,12 @@ button.danger,
 
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
   height: 100dvh;
+  overflow: hidden;
   background: var(--surface-primary);
 }
 
@@ -198,6 +208,11 @@ img.brand-mark {
   gap: var(--space-2);
 }
 
+.document-actions {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
 .theme-switcher {
   display: inline-grid;
   grid-template-columns: repeat(3, 32px);
@@ -232,6 +247,15 @@ img.brand-mark {
   color: var(--accent-primary);
   border-color: var(--border-default);
   background: var(--surface-secondary);
+}
+
+.app-version {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .toolbar-button,
@@ -386,6 +410,8 @@ img.brand-mark {
   grid-row: 3;
   display: grid;
   grid-template-columns: minmax(232px, 292px) minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -407,7 +433,7 @@ img.brand-mark {
 
 .file-tree {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   height: 100%;
   min-height: 0;
 }
@@ -423,33 +449,104 @@ img.brand-mark {
   font-weight: 600;
 }
 
+.panel-heading-main {
+  display: grid;
+  gap: 2px;
+}
+
+.panel-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-heading small {
+  overflow: hidden;
+  max-width: 150px;
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sort-trigger {
+  min-height: 22px;
+  padding: 0 var(--space-2);
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+  background: var(--surface-inset);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.sort-trigger:hover {
+  color: var(--text-primary);
+}
+
 .tree-list {
   min-height: 0;
   overflow: auto;
   padding: var(--space-2);
 }
 
+.tree-node {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tree-node:last-child {
+  border-bottom: 0;
+}
+
 .tree-row {
   display: grid;
   grid-template-columns: 16px 18px minmax(0, 1fr);
   width: 100%;
-  min-height: 36px;
+  min-height: 46px;
   align-items: center;
   gap: var(--space-2);
-  border-color: transparent;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   text-align: left;
 }
 
-.tree-row span:last-child {
+.tree-row:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+  opacity: 0.68;
+}
+
+.tree-row.move-target {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 28%, transparent);
+  outline-offset: -1px;
+}
+
+.manage-mode .tree-row:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
+}
+
+.tree-row-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.tree-row-name,
+.tree-row-meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.tree-row-meta {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 550;
+}
+
 .tree-row.selected {
   color: var(--accent-primary);
-  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
   background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
@@ -459,6 +556,17 @@ img.brand-mark {
 
 .disclosure.open {
   transform: rotate(90deg);
+}
+
+.move-target-bar {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.move-target-bar button {
+  flex: 1;
 }
 
 .rename-form {
@@ -487,17 +595,27 @@ img.brand-mark {
   flex: 1;
 }
 
+.tree-actions button.selected {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
 .document-pane {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   flex: 1;
 }
 
 .document-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  min-width: 0;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-default);
@@ -506,9 +624,17 @@ img.brand-mark {
 
 .document-title-group {
   display: flex;
+  flex: 1 1 0;
   min-width: 0;
+  overflow: hidden;
   align-items: center;
   gap: var(--space-3);
+}
+
+.document-title-copy {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .document-back {
@@ -518,6 +644,7 @@ img.brand-mark {
 .document-header h1 {
   margin: 0;
   overflow: hidden;
+  max-width: 100%;
   font-size: 20px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -526,8 +653,11 @@ img.brand-mark {
 
 .document-header p {
   margin: var(--space-1) 0 0;
+  overflow: hidden;
   color: var(--text-secondary);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editor-wrap {
@@ -579,19 +709,30 @@ img.brand-mark {
 }
 
 .markdown-body {
-  width: calc(100% / var(--preview-zoom, 1));
-  max-width: calc(78ch / var(--preview-zoom, 1));
+  width: 100%;
+  max-width: none;
   margin: 0;
   color: var(--text-primary);
   font-size: 15px;
   line-height: 1.6;
-  zoom: var(--preview-zoom, 1);
 }
 
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
   line-height: 1.25;
+}
+
+.markdown-body h1 {
+  font-size: 1.86em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+}
+
+.markdown-body h3 {
+  font-size: 1.29em;
 }
 
 .markdown-body strong {
@@ -601,7 +742,7 @@ img.brand-mark {
 .markdown-body pre,
 .markdown-body code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
+  font-size: 0.87em;
 }
 
 .markdown-body :not(pre) > code {
@@ -650,7 +791,7 @@ img.brand-mark {
   width: 100%;
   border-collapse: collapse;
   margin: var(--space-4) 0;
-  font-size: 14px;
+  font-size: 0.93em;
 }
 
 .markdown-body th,
@@ -816,6 +957,7 @@ details.markdown-callout > summary::marker {
   }
 
   .topbar {
+    position: relative;
     align-items: flex-start;
     flex-direction: column;
   }
@@ -828,6 +970,12 @@ details.markdown-callout > summary::marker {
 
   .toolbar-button span {
     display: none;
+  }
+
+  .app-version {
+    position: fixed;
+    top: calc(var(--space-3) + env(safe-area-inset-top));
+    right: var(--space-4);
   }
 
   .workspace-frame {
@@ -860,6 +1008,7 @@ details.markdown-callout > summary::marker {
 
   .document-title-group {
     flex: 1;
+    min-width: 0;
   }
 
   .document-header h1 {
@@ -872,6 +1021,7 @@ details.markdown-callout > summary::marker {
 
   .document-actions {
     width: auto;
+    min-width: 0;
   }
 
   .document-actions button {
@@ -902,18 +1052,6 @@ details.markdown-callout > summary::marker {
 
   .markdown-body {
     font-size: 14px;
-  }
-
-  .markdown-body h1 {
-    font-size: 26px;
-  }
-
-  .markdown-body h2 {
-    font-size: 21px;
-  }
-
-  .markdown-body h3 {
-    font-size: 18px;
   }
 }
 

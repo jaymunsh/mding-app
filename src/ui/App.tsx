@@ -22,6 +22,8 @@ import { useWorkspaceController } from "../app/workspaceController"
 import { DocumentPane } from "./DocumentPane"
 import { FileTree } from "./FileTree"
 
+const APP_VERSION = "v0.5"
+
 export function App() {
   const workspace = useWorkspaceController()
   const documentInputRef = useRef<HTMLInputElement>(null)
@@ -131,6 +133,7 @@ export function App() {
               <Moon size={16} aria-hidden="true" />
             </button>
           </fieldset>
+          <span className="app-version">{APP_VERSION}</span>
         </div>
       </header>
 

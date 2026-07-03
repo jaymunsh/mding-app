@@ -20,6 +20,14 @@ type ItemRequest = {
   readonly kind: NodeKind
 }
 
+type MoveRequest = {
+  readonly repository: WorkspaceRepository
+  readonly setState: StateSetter
+  readonly nodes: readonly WorkspaceNode[]
+  readonly selectedId: NodeId | null
+  readonly parentId: NodeId | null
+}
+
 export async function initializeWorkspace(
   repository: WorkspaceRepository,
   setState: StateSetter,
@@ -75,11 +83,24 @@ export async function saveSelectedDocument(
   }
 
   await withError(setState, async () => {
-    const document = { ...selectedDocument, markdown: editBuffer, updatedAt: Date.now() }
+    const updatedAt = Date.now()
+    const document = { ...selectedDocument, markdown: editBuffer, updatedAt }
+    const nodes = await repository.listNodes()
+    const node = findNode(nodes, selectedDocument.id)
     await repository.saveDocument(document)
+    if (node !== null) {
+      await repository.saveNode({ ...node, updatedAt })
+    }
+    const refreshedNodes = await repository.listNodes()
     setState((current) =>
       current.selectedDocument?.id === selectedDocument.id
-        ? { ...current, selectedDocument: document, isEditing: false, errorMessage: null }
+        ? {
+            ...current,
+            nodes: refreshedNodes,
+            selectedDocument: document,
+            isEditing: false,
+            errorMessage: null,
+          }
         : current,
     )
   })
@@ -176,24 +197,45 @@ export async function deleteSelected(
   })
 }
 
-export async function moveSelectedToRoot(
-  repository: WorkspaceRepository,
-  setState: StateSetter,
-  selectedId: NodeId | null,
-): Promise<void> {
-  if (selectedId === null) {
-    setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
+export async function moveSelected(request: MoveRequest): Promise<void> {
+  if (request.selectedId === null) {
+    request.setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
     return
   }
 
-  await withError(setState, async () => {
-    const nodes = await repository.listNodes()
-    const node = findNode(nodes, selectedId)
+  if (request.selectedId === request.parentId) {
+    request.setState((current) => ({ ...current, errorMessage: "Choose a different folder." }))
+    return
+  }
+
+  if (request.parentId !== null) {
+    const target = findNode(request.nodes, request.parentId)
+    if (target?.kind !== NodeKind.Folder) {
+      request.setState((current) => ({ ...current, errorMessage: "Choose a folder target." }))
+      return
+    }
+  }
+
+  if (
+    request.parentId !== null &&
+    isDescendant(request.nodes, request.selectedId, request.parentId)
+  ) {
+    request.setState((current) => ({ ...current, errorMessage: "Cannot move into itself." }))
+    return
+  }
+
+  await withError(request.setState, async () => {
+    const nodes = await request.repository.listNodes()
+    const node = findNode(nodes, request.selectedId)
     if (node === null) {
       throw new Error("Selected item no longer exists.")
     }
-    await repository.saveNode({ ...node, parentId: null, updatedAt: Date.now() })
-    await refreshAfterMutation(repository, setState)
+    await request.repository.saveNode({
+      ...node,
+      parentId: request.parentId,
+      updatedAt: Date.now(),
+    })
+    await refreshAfterMutation(request.repository, request.setState)
   })
 }
 
@@ -219,4 +261,12 @@ function collectDescendantIds(
 ): readonly NodeId[] {
   const directChildren = nodes.filter((node) => node.parentId === parentId)
   return directChildren.flatMap((node) => [node.id, ...collectDescendantIds(nodes, node.id)])
+}
+
+function isDescendant(
+  nodes: readonly WorkspaceNode[],
+  ancestorId: NodeId,
+  candidateId: NodeId,
+): boolean {
+  return collectDescendantIds(nodes, ancestorId).includes(candidateId)
 }

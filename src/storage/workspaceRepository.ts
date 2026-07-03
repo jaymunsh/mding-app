@@ -12,6 +12,8 @@ import {
 import { type MdingDatabase, openWorkspaceDatabase } from "./database"
 import { ABOUT_US_HTML, WELCOME_MARKDOWN } from "./sampleWorkspace"
 
+let seedWorkspacePromise: Promise<void> | null = null
+
 export type WorkspaceRepository = {
   readonly seedIfEmpty: () => Promise<void>
   readonly listNodes: () => Promise<readonly WorkspaceNode[]>
@@ -35,6 +37,15 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
   }
 
   async seedIfEmpty(): Promise<void> {
+    seedWorkspacePromise ??= this.#seedIfEmptyOnce()
+    try {
+      await seedWorkspacePromise
+    } finally {
+      seedWorkspacePromise = null
+    }
+  }
+
+  async #seedIfEmptyOnce(): Promise<void> {
     const database = await this.#openDatabase()
     const count = await database.count("nodes")
     if (count > 0) {

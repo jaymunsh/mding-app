@@ -18,8 +18,8 @@ type DocumentPaneProps = {
   readonly workspace: WorkspaceController
 }
 
-type PreviewZoomStyle = CSSProperties & {
-  readonly "--preview-zoom": number
+type MarkdownZoomStyle = CSSProperties & {
+  readonly fontSize: string
 }
 
 export function DocumentPane({ workspace }: DocumentPaneProps) {
@@ -50,7 +50,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
             <ArrowLeft size={16} aria-hidden="true" />
             <span>Files</span>
           </button>
-          <div>
+          <div className="document-title-copy">
             <h1>{workspace.selectedNode.name}</h1>
             <p>{workspace.isDirty ? "Unsaved changes" : "Saved locally"}</p>
           </div>
@@ -176,7 +176,7 @@ function DocumentPreview({
   readonly source: string
   readonly zoom: number
 }) {
-  const zoomStyle = createPreviewZoomStyle(zoom)
+  const markdownZoomStyle = createMarkdownZoomStyle(zoom)
 
   switch (documentFormat) {
     case DocumentFormat.Html:
@@ -195,8 +195,8 @@ function DocumentPreview({
       )
     case DocumentFormat.Markdown:
       return (
-        <article className="markdown-preview" style={zoomStyle}>
-          <div className="markdown-body">
+        <article className="markdown-preview">
+          <div className="markdown-body" style={markdownZoomStyle}>
             <Suspense fallback={<p>Loading preview...</p>}>
               <MarkdownPreview markdown={source} />
             </Suspense>
@@ -214,8 +214,8 @@ function DocumentPreview({
   }
 }
 
-function createPreviewZoomStyle(zoom: number): PreviewZoomStyle {
+function createMarkdownZoomStyle(zoom: number): MarkdownZoomStyle {
   return {
-    "--preview-zoom": zoom,
+    fontSize: `${15 * zoom}px`,
   }
 }

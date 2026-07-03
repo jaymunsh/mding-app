@@ -1,7 +1,17 @@
 import { type NodeId, NodeKind, type TreeNode, type WorkspaceNode } from "./workspace"
 
-export function buildTree(nodes: readonly WorkspaceNode[]): readonly TreeNode[] {
-  return buildChildren(nodes, null)
+export const TreeSortOrder = {
+  Name: "name",
+  Updated: "updated",
+} as const
+
+export type TreeSortOrder = (typeof TreeSortOrder)[keyof typeof TreeSortOrder]
+
+export function buildTree(
+  nodes: readonly WorkspaceNode[],
+  sortOrder: TreeSortOrder = TreeSortOrder.Name,
+): readonly TreeNode[] {
+  return buildChildren(nodes, null, sortOrder)
 }
 
 export function findNode(nodes: readonly WorkspaceNode[], id: NodeId | null): WorkspaceNode | null {
@@ -52,19 +62,24 @@ export function uniqueName(
 function buildChildren(
   nodes: readonly WorkspaceNode[],
   parentId: NodeId | null,
+  sortOrder: TreeSortOrder,
 ): readonly TreeNode[] {
   return nodes
     .filter((node) => node.parentId === parentId)
-    .sort(compareNodes)
+    .sort((left, right) => compareNodes(left, right, sortOrder))
     .map((node) => ({
       ...node,
-      children: buildChildren(nodes, node.id),
+      children: buildChildren(nodes, node.id, sortOrder),
     }))
 }
 
-function compareNodes(left: WorkspaceNode, right: WorkspaceNode): number {
+function compareNodes(left: WorkspaceNode, right: WorkspaceNode, sortOrder: TreeSortOrder): number {
   if (left.kind !== right.kind) {
     return left.kind === NodeKind.Folder ? -1 : 1
+  }
+
+  if (sortOrder === TreeSortOrder.Updated && left.updatedAt !== right.updatedAt) {
+    return right.updatedAt - left.updatedAt
   }
 
   return left.name.localeCompare(right.name, undefined, { sensitivity: "base", numeric: true })

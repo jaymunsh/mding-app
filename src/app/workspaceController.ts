@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { assertNever } from "../domain/result"
-import { buildTree, findNode } from "../domain/tree"
+import { findNode } from "../domain/tree"
 import type { WorkspaceNode } from "../domain/workspace"
-import { type NodeId, NodeKind, type TreeNode, type WorkspaceDocument } from "../domain/workspace"
+import { type NodeId, NodeKind, type WorkspaceDocument } from "../domain/workspace"
 import { createWorkspaceRepository } from "../storage/workspaceRepository"
 import { registerDocumentLaunchHandler } from "./fileLaunch"
 import { openLaunchedDocumentFiles } from "./fileLaunchActions"
@@ -10,12 +10,12 @@ import {
   createItem,
   deleteSelected,
   initializeWorkspace,
-  moveSelectedToRoot,
+  moveSelected,
   renameSelected,
   saveSelectedDocument,
   selectNode,
 } from "./workspaceActions"
-import { initialState, Screen } from "./workspaceState"
+import { initialState, messageFromError, Screen } from "./workspaceState"
 import {
   exportSelectedDocument,
   exportWorkspace,
@@ -27,7 +27,6 @@ export { Screen }
 
 export type WorkspaceController = {
   readonly nodes: readonly WorkspaceNode[]
-  readonly tree: readonly TreeNode[]
   readonly selectedNode: WorkspaceNode | null
   readonly selectedDocument: WorkspaceDocument | null
   readonly editBuffer: string
@@ -37,6 +36,7 @@ export type WorkspaceController = {
   readonly errorMessage: string | null
   readonly storagePersisted: boolean
   readonly selectNode: (id: NodeId) => Promise<void>
+  readonly selectNodeInTree: (id: NodeId) => Promise<void>
   readonly showBrowser: () => void
   readonly startEditing: () => void
   readonly cancelEditing: () => void
@@ -47,6 +47,7 @@ export type WorkspaceController = {
   readonly renameSelected: (name: string) => Promise<void>
   readonly deleteSelected: () => Promise<void>
   readonly moveSelectedToRoot: () => Promise<void>
+  readonly moveSelectedToFolder: (id: NodeId) => Promise<void>
   readonly importDocumentFiles: (files: readonly File[]) => Promise<void>
   readonly importWorkspaceFile: (file: File) => Promise<void>
   readonly exportSelectedDocument: () => void
@@ -74,7 +75,6 @@ export function useWorkspaceController(): WorkspaceController {
 
   return {
     nodes: state.nodes,
-    tree: buildTree(state.nodes),
     selectedNode,
     selectedDocument: state.selectedDocument,
     editBuffer: state.editBuffer,
@@ -84,6 +84,24 @@ export function useWorkspaceController(): WorkspaceController {
     errorMessage: state.errorMessage,
     storagePersisted: state.storagePersisted,
     selectNode: (id) => selectNode(repository, setState, id),
+    selectNodeInTree: async (id) => {
+      try {
+        const nodes = await repository.listNodes()
+        const node = findNode(nodes, id)
+        const document = node?.kind === NodeKind.File ? await repository.getDocument(id) : null
+        setState((current) => ({
+          ...current,
+          nodes,
+          selectedId: id,
+          selectedDocument: document,
+          editBuffer: document?.markdown ?? "",
+          isEditing: false,
+          errorMessage: null,
+        }))
+      } catch (error) {
+        setState((current) => ({ ...current, errorMessage: messageFromError(error) }))
+      }
+    },
     showBrowser: () => setState((current) => ({ ...current, screen: Screen.Browser })),
     startEditing: () => setState((current) => ({ ...current, isEditing: true })),
     cancelEditing: () =>
@@ -113,7 +131,22 @@ export function useWorkspaceController(): WorkspaceController {
       }),
     renameSelected: (name) => renameSelected(repository, setState, state.selectedId, name),
     deleteSelected: () => deleteSelected(repository, setState, state.nodes, state.selectedId),
-    moveSelectedToRoot: () => moveSelectedToRoot(repository, setState, state.selectedId),
+    moveSelectedToRoot: () =>
+      moveSelected({
+        repository,
+        setState,
+        nodes: state.nodes,
+        selectedId: state.selectedId,
+        parentId: null,
+      }),
+    moveSelectedToFolder: (id) =>
+      moveSelected({
+        repository,
+        setState,
+        nodes: state.nodes,
+        selectedId: state.selectedId,
+        parentId: id,
+      }),
     importDocumentFiles: (files) =>
       importDocumentFiles({
         repository,
