@@ -1,14 +1,16 @@
 import type { MermaidColorMode } from "./MarkdownPreview"
 
-export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode): string {
+export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom = 1): string {
   return `
 ;(function () {
   var appTheme = ${JSON.stringify(colorMode)}
+  var previewZoom = ${JSON.stringify(zoom)}
 
   function syncTheme() {
     document.documentElement.dataset.mdingTheme = appTheme
     document.documentElement.dataset.theme = appTheme
     document.documentElement.style.colorScheme = appTheme
+    document.documentElement.style.zoom = String(previewZoom)
   }
 
   function targetIdFromHref(href) {

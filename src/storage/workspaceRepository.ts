@@ -10,7 +10,7 @@ import {
   type WorkspaceNode,
 } from "../domain/workspace"
 import { type MdingDatabase, openWorkspaceDatabase } from "./database"
-import { WELCOME_MARKDOWN } from "./sampleWorkspace"
+import { ABOUT_US_HTML, WELCOME_MARKDOWN } from "./sampleWorkspace"
 
 export type WorkspaceRepository = {
   readonly seedIfEmpty: () => Promise<void>
@@ -43,7 +43,8 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
 
     const now = Date.now()
     const welcomeId = createNodeId()
-    const node = {
+    const htmlId = createNodeId()
+    const welcomeNode = {
       id: welcomeId,
       parentId: null,
       kind: NodeKind.File,
@@ -51,16 +52,32 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       createdAt: now,
       updatedAt: now,
     }
-    const document = {
+    const htmlNode = {
+      id: htmlId,
+      parentId: null,
+      kind: NodeKind.File,
+      name: "AboutUs.html",
+      createdAt: now,
+      updatedAt: now,
+    }
+    const welcomeDocument = {
       id: welcomeId,
       markdown: WELCOME_MARKDOWN,
       format: DocumentFormat.Markdown,
       updatedAt: now,
     }
+    const htmlDocument = {
+      id: htmlId,
+      markdown: ABOUT_US_HTML,
+      format: DocumentFormat.Html,
+      updatedAt: now,
+    }
 
     const transaction = database.transaction(["nodes", "documents"], "readwrite")
-    await transaction.objectStore("nodes").put(node)
-    await transaction.objectStore("documents").put(document)
+    await transaction.objectStore("nodes").put(welcomeNode)
+    await transaction.objectStore("nodes").put(htmlNode)
+    await transaction.objectStore("documents").put(welcomeDocument)
+    await transaction.objectStore("documents").put(htmlDocument)
     await transaction.done
   }
 

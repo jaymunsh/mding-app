@@ -4,24 +4,25 @@ import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./
 
 type HtmlPreviewProps = {
   readonly html: string
+  readonly zoom: number
 }
 
 type HtmlPreviewState = {
   readonly srcDoc: string
 }
 
-export function HtmlPreview({ html }: HtmlPreviewProps) {
+export function HtmlPreview({ html, zoom }: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
   const colorMode = useMermaidColorMode()
   const [preview, setPreview] = useState<HtmlPreviewState>(() => ({
-    srcDoc: createLoadingDocument(colorMode),
+    srcDoc: createLoadingDocument(colorMode, zoom),
   }))
 
   useEffect(() => {
     let cancelled = false
 
     async function buildPreview(): Promise<void> {
-      const srcDoc = await createHtmlPreviewDocument(html, colorMode, idPrefix)
+      const srcDoc = await createHtmlPreviewDocument(html, colorMode, idPrefix, zoom)
       if (!cancelled) {
         setPreview({ srcDoc })
       }
@@ -32,7 +33,7 @@ export function HtmlPreview({ html }: HtmlPreviewProps) {
     return () => {
       cancelled = true
     }
-  }, [colorMode, html, idPrefix])
+  }, [colorMode, html, idPrefix, zoom])
 
   return <iframe className="html-preview-frame" title="HTML preview" srcDoc={preview.srcDoc} />
 }
@@ -41,18 +42,19 @@ async function createHtmlPreviewDocument(
   html: string,
   colorMode: MermaidColorMode,
   idPrefix: string,
+  zoom: number,
 ): Promise<string> {
   const document = new DOMParser().parseFromString(html, "text/html")
   injectPreviewStyle(document, colorMode)
   await renderMermaidBlocks(document, colorMode, idPrefix)
-  injectPreviewBridge(document, colorMode)
+  injectPreviewBridge(document, colorMode, zoom)
   return `<!doctype html>${document.documentElement.outerHTML}`
 }
 
-function createLoadingDocument(colorMode: MermaidColorMode): string {
+function createLoadingDocument(colorMode: MermaidColorMode, zoom: number): string {
   const foreground = colorMode === "dark" ? "#f3f4ed" : "#181916"
   const background = colorMode === "dark" ? "#0c0d0b" : "#ffffff"
-  return `<!doctype html><html><body style="margin:0;padding:20px;color:${foreground};background:${background};font-family:system-ui,sans-serif">Loading HTML preview...</body></html>`
+  return `<!doctype html><html style="zoom:${zoom}"><body style="margin:0;padding:20px;color:${foreground};background:${background};font-family:system-ui,sans-serif">Loading HTML preview...</body></html>`
 }
 
 function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): void {
@@ -61,9 +63,9 @@ function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): vo
   document.head.append(style)
 }
 
-function injectPreviewBridge(document: Document, colorMode: MermaidColorMode): void {
+function injectPreviewBridge(document: Document, colorMode: MermaidColorMode, zoom: number): void {
   const script = document.createElement("script")
-  script.textContent = createHtmlPreviewBridgeScript(colorMode)
+  script.textContent = createHtmlPreviewBridgeScript(colorMode, zoom)
   document.body.append(script)
 }
 

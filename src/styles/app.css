@@ -247,6 +247,48 @@ img.brand-mark {
   white-space: nowrap;
 }
 
+.preview-zoom-controls {
+  display: inline-grid;
+  grid-template-columns: 32px 52px 32px;
+  min-height: 36px;
+  align-items: center;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-inset);
+}
+
+.preview-zoom-controls legend {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preview-zoom-controls button {
+  width: auto;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.preview-zoom-controls button:hover:not(:disabled) {
+  border-color: var(--border-default);
+  background: var(--surface-secondary);
+}
+
+.preview-zoom-controls button:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
 .app-alert {
   grid-row: 2;
   display: flex;
@@ -537,11 +579,13 @@ img.brand-mark {
 }
 
 .markdown-body {
-  max-width: 78ch;
+  width: calc(100% / var(--preview-zoom, 1));
+  max-width: calc(78ch / var(--preview-zoom, 1));
   margin: 0;
   color: var(--text-primary);
   font-size: 15px;
   line-height: 1.6;
+  zoom: var(--preview-zoom, 1);
 }
 
 .markdown-body h1,
@@ -838,6 +882,18 @@ details.markdown-callout > summary::marker {
 
   .document-actions button span {
     display: none;
+  }
+
+  .preview-zoom-controls {
+    grid-template-columns: 30px 46px 30px;
+    min-height: 32px;
+  }
+
+  .preview-zoom-controls button {
+    min-width: 0;
+    min-height: 28px;
+    padding: 0;
+    font-size: 11px;
   }
 
   .markdown-preview {

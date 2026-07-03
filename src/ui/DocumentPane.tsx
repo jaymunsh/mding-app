@@ -1,5 +1,5 @@
-import { ArrowLeft, Check, Download, Eye, Pencil, X } from "lucide-react"
-import { lazy, Suspense } from "react"
+import { ArrowLeft, Check, Download, Eye, Pencil, X, ZoomIn, ZoomOut } from "lucide-react"
+import { type CSSProperties, lazy, Suspense, useState } from "react"
 import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
@@ -11,11 +11,20 @@ const HtmlPreview = lazy(() =>
   import("./HtmlPreview").then((module) => ({ default: module.HtmlPreview })),
 )
 
+const PREVIEW_ZOOM_STEPS = [0.75, 0.9, 1, 1.1, 1.25, 1.5] as const
+const DEFAULT_PREVIEW_ZOOM_INDEX = 2
+
 type DocumentPaneProps = {
   readonly workspace: WorkspaceController
 }
 
+type PreviewZoomStyle = CSSProperties & {
+  readonly "--preview-zoom": number
+}
+
 export function DocumentPane({ workspace }: DocumentPaneProps) {
+  const [previewZoomIndex, setPreviewZoomIndex] = useState(DEFAULT_PREVIEW_ZOOM_INDEX)
+
   if (workspace.selectedNode === null || workspace.selectedNode.kind === NodeKind.Folder) {
     return (
       <section className="document-pane empty-document" aria-label="No document selected">
@@ -31,6 +40,7 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
   const documentFormat = selectedDocument?.format ?? DocumentFormat.Markdown
   const canEdit = isEditableDocument(selectedDocument)
   const exportLabel = documentFormat === DocumentFormat.Html ? "Export html" : "Export md"
+  const previewZoom = PREVIEW_ZOOM_STEPS[previewZoomIndex] ?? 1
 
   return (
     <section className="document-pane" aria-label="Document">
@@ -64,6 +74,18 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
             </>
           ) : (
             <>
+              <PreviewZoomControls
+                zoom={previewZoom}
+                canZoomOut={previewZoomIndex > 0}
+                canZoomIn={previewZoomIndex < PREVIEW_ZOOM_STEPS.length - 1}
+                onZoomOut={() => setPreviewZoomIndex((current) => Math.max(0, current - 1))}
+                onZoomIn={() =>
+                  setPreviewZoomIndex((current) =>
+                    Math.min(PREVIEW_ZOOM_STEPS.length - 1, current + 1),
+                  )
+                }
+                onReset={() => setPreviewZoomIndex(DEFAULT_PREVIEW_ZOOM_INDEX)}
+              />
               <button
                 type="button"
                 onClick={workspace.exportSelectedDocument}
@@ -101,25 +123,67 @@ export function DocumentPane({ workspace }: DocumentPaneProps) {
         <DocumentPreview
           documentFormat={documentFormat}
           source={selectedDocument?.markdown ?? ""}
+          zoom={previewZoom}
         />
       )}
     </section>
   )
 }
 
+function PreviewZoomControls({
+  zoom,
+  canZoomOut,
+  canZoomIn,
+  onZoomOut,
+  onZoomIn,
+  onReset,
+}: {
+  readonly zoom: number
+  readonly canZoomOut: boolean
+  readonly canZoomIn: boolean
+  readonly onZoomOut: () => void
+  readonly onZoomIn: () => void
+  readonly onReset: () => void
+}) {
+  const zoomLabel = `${Math.round(zoom * 100)}%`
+
+  return (
+    <fieldset className="preview-zoom-controls">
+      <legend>Preview zoom</legend>
+      <button type="button" onClick={onZoomOut} disabled={!canZoomOut} aria-label="Zoom out">
+        <ZoomOut size={15} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={onReset}
+        aria-label={`Reset zoom to 100%, current ${zoomLabel}`}
+      >
+        {zoomLabel}
+      </button>
+      <button type="button" onClick={onZoomIn} disabled={!canZoomIn} aria-label="Zoom in">
+        <ZoomIn size={15} aria-hidden="true" />
+      </button>
+    </fieldset>
+  )
+}
+
 function DocumentPreview({
   documentFormat,
   source,
+  zoom,
 }: {
   readonly documentFormat: DocumentFormat
   readonly source: string
+  readonly zoom: number
 }) {
+  const zoomStyle = createPreviewZoomStyle(zoom)
+
   switch (documentFormat) {
     case DocumentFormat.Html:
       return (
         <article className="html-preview">
           <Suspense fallback={<p>Loading preview...</p>}>
-            <HtmlPreview html={source} />
+            <HtmlPreview html={source} zoom={zoom} />
           </Suspense>
           {source.trim().length === 0 ? (
             <div className="empty-state document-empty">
@@ -131,7 +195,7 @@ function DocumentPreview({
       )
     case DocumentFormat.Markdown:
       return (
-        <article className="markdown-preview">
+        <article className="markdown-preview" style={zoomStyle}>
           <div className="markdown-body">
             <Suspense fallback={<p>Loading preview...</p>}>
               <MarkdownPreview markdown={source} />
@@ -147,5 +211,11 @@ function DocumentPreview({
       )
     default:
       return assertNever(documentFormat)
+  }
+}
+
+function createPreviewZoomStyle(zoom: number): PreviewZoomStyle {
+  return {
+    "--preview-zoom": zoom,
   }
 }
