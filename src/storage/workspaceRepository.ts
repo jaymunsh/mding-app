@@ -59,7 +59,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       id: welcomeId,
       parentId: null,
       kind: NodeKind.File,
-      name: "Welcome.md",
+      name: "markdown-example.md",
       createdAt: now,
       updatedAt: now,
     }
@@ -67,7 +67,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       id: htmlId,
       parentId: null,
       kind: NodeKind.File,
-      name: "AboutUs.html",
+      name: "about-mding.html",
       createdAt: now,
       updatedAt: now,
     }

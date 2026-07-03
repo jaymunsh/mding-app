@@ -8,11 +8,11 @@ async function capture(viewport, name) {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport })
   await page.goto(baseUrl)
-  await page.getByText("Welcome.md").click()
-  await page.getByRole("button", { name: "Edit" }).click()
+  await page.getByText("markdown-example.md").click()
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
   await page.locator("textarea").fill(`# ${name}\n\nEdited from Playwright visual QA.`)
-  await page.getByRole("button", { name: "Save" }).click()
-  await page.getByRole("button", { name: "Edit" }).waitFor()
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await page.getByRole("button", { name: "Edit", exact: true }).waitFor()
   await page.screenshot({ path: `${evidenceDir}/${name}.png`, fullPage: true })
   await browser.close()
 }
@@ -25,11 +25,17 @@ await verifyScrollingAndTheme()
 
 console.log(`visual QA screenshots written to ${evidenceDir}`)
 
+async function openSettings(page) {
+  await page.getByRole("button", { name: "Settings" }).click()
+  await page.getByRole("dialog", { name: "Settings" }).waitFor()
+}
+
 async function verifyScrollingAndTheme() {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
   await page.goto(baseUrl)
 
+  await openSettings(page)
   await page.getByRole("button", { name: "Use dark theme" }).click()
   await page.getByRole("button", { name: "Use light theme" }).click()
   const lightTheme = await page.evaluate(() => ({
@@ -47,6 +53,7 @@ async function verifyScrollingAndTheme() {
   if (darkTheme.theme !== "dark" || darkTheme.colorScheme !== "dark") {
     throw new Error("Dark theme did not apply before renderer checks.")
   }
+  await page.getByRole("button", { name: "Settings" }).click()
 
   const longMarkdown = Array.from(
     { length: 90 },
@@ -126,7 +133,7 @@ ${longMarkdown}`
     throw new Error("Markdown preview did not retain a positive scrollTop.")
   }
 
-  await page.getByRole("button", { name: "Edit" }).click()
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
   const editorHeight = await page.locator("textarea").evaluate((element) => element.clientHeight)
   if (editorHeight < 500) {
     throw new Error(`Markdown source editor is too short: ${editorHeight}px.`)

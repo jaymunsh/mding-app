@@ -23,7 +23,17 @@ After the first successful online load, the app shell and built assets are cache
 - Export the current document file or the whole workspace backup.
 - Run offline after installation through the browser PWA cache.
 - Register Markdown and HTML file handling on macOS when installed through Chromium browsers.
-- Support light mode, dark mode, and compact mobile layouts.
+- Support English/Korean UI, light mode, dark mode, and compact mobile layouts.
+- Use a soft ivory light theme and a compact settings popover for theme/language selection.
+
+## Default Workspace
+
+New local workspaces start with two sample files:
+
+- `markdown-example.md`: a Markdown feature sample with tables, task lists, inline code, callouts, code highlighting, Mermaid, images, and blockquotes.
+- `about-mding.html`: a read-only HTML sample that exercises in-frame navigation, local scripts, theme toggling, Mermaid rendering, and preview zoom.
+
+Existing browser workspaces are not renamed automatically. The seed files only apply when mding opens with an empty local workspace.
 
 ## HTML Preview
 
@@ -71,22 +81,30 @@ Future backup options worth considering:
 - Optional local image attachment management with an `assets/` folder.
 - Optional file-system folder sync on browsers that support the File System Access API.
 
-## Install As A PWA
+## Install And Updates
 
-See [docs/pwa-install.md](docs/pwa-install.md).
+Deploy the built `dist/` output to a static HTTPS host such as Vercel, Netlify, Cloudflare Pages, or GitHub Pages. Share that HTTPS URL as the install link.
 
-Short version:
+Installation:
 
-1. Deploy the built `dist/` output to a static HTTPS host such as Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
-2. Open that HTTPS URL once on the target device.
-3. Install from Safari on iOS/iPadOS, Safari or Chrome/Edge on macOS, or Chrome/Edge on Android.
-4. Open the installed app once while online so the app shell and renderer chunks are cached.
-5. Use it offline from the installed app icon.
+1. Open the hosted URL on the target device.
+2. iOS/iPadOS: use Safari share sheet, then Add to Home Screen.
+3. macOS Safari: use Add to Dock. macOS Chrome/Edge: use the browser app install action.
+4. Android: install from Chrome/Edge or another PWA-capable browser.
+5. Open the installed app once while online so the app shell and renderer chunks are cached.
+
+Updates:
+
+- A push to the hosting branch is not the same as an immediate installed-app update.
+- The host must finish deployment first, then the installed PWA checks the service worker and cached assets.
+- Desktop browsers usually update after a hard reload or app restart.
+- iOS home-screen PWAs can lag behind; fully quit the app, reopen it, or reboot the device if it keeps showing an older bundle.
+- If reinstalling the app, export a workspace backup first because data is browser-managed local storage.
 
 References:
 
 - [MDN: Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
-- [web.dev: Service workers](https://web.dev/learn/pwa/service-workers)
+- [web.dev: Service worker updates](https://web.dev/learn/pwa/update)
 - [Apple Support: Turn a website into an app in Safari on iPhone](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios)
 - [Apple Support: Use Safari web apps on Mac](https://support.apple.com/en-us/104996)
 
@@ -123,6 +141,14 @@ corepack pnpm qa:visual
 
 ## Screenshots
 
-![mding mobile workspace](docs/imgs/img1.png)
+<p align="center">
+  <img src="docs/imgs/img1.png" alt="mding mobile workspace" width="280" />
+</p>
 
-![mding mobile markdown preview](docs/imgs/img2.png)
+<p align="center">
+  <img src="docs/imgs/img2.png" alt="mding mobile Markdown preview" width="280" />
+</p>
+
+<p align="center">
+  <img src="docs/imgs/img3.png" alt="mding desktop Markdown preview" width="720" />
+</p>
