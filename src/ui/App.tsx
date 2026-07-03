@@ -169,7 +169,6 @@ export function App() {
         className="hidden-input"
         type="file"
         aria-label={t("importDocumentAria")}
-        accept=".md,.markdown,.html,.htm,text/markdown,text/html,text/plain"
         multiple
         onChange={(event) => {
           const files = event.currentTarget.files
