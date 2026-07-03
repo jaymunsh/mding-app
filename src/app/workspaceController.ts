@@ -42,7 +42,7 @@ export type WorkspaceController = {
   readonly cancelEditing: () => void
   readonly updateEditBuffer: (value: string) => void
   readonly saveSelectedDocument: () => Promise<void>
-  readonly createFile: () => Promise<void>
+  readonly createFile: (name?: string) => Promise<void>
   readonly createFolder: () => Promise<void>
   readonly renameSelected: (name: string) => Promise<void>
   readonly deleteSelected: () => Promise<void>
@@ -113,13 +113,14 @@ export function useWorkspaceController(): WorkspaceController {
     updateEditBuffer: (value) => setState((current) => ({ ...current, editBuffer: value })),
     saveSelectedDocument: () =>
       saveSelectedDocument(repository, setState, state.selectedDocument, state.editBuffer),
-    createFile: () =>
+    createFile: (name) =>
       createItem({
         repository,
         setState,
         nodes: state.nodes,
         selectedId: state.selectedId,
         kind: NodeKind.File,
+        name,
       }),
     createFolder: () =>
       createItem({

@@ -18,6 +18,7 @@ type ItemRequest = {
   readonly nodes: readonly WorkspaceNode[]
   readonly selectedId: NodeId | null
   readonly kind: NodeKind
+  readonly name?: string | undefined
 }
 
 type MoveRequest = {
@@ -108,7 +109,8 @@ export async function saveSelectedDocument(
 
 export async function createItem(request: ItemRequest): Promise<void> {
   const parentId = getFolderTarget(request.nodes, request.selectedId)
-  const baseName = request.kind === NodeKind.File ? "Untitled.md" : "Folder"
+  const baseName =
+    request.kind === NodeKind.File ? normalizeMarkdownFileName(request.name) : "Folder"
   const name = uniqueName(request.nodes, parentId, baseName)
   const now = Date.now()
   const id = createNodeId()
@@ -139,6 +141,15 @@ export async function createItem(request: ItemRequest): Promise<void> {
       errorMessage: null,
     }))
   })
+}
+
+function normalizeMarkdownFileName(name: string | undefined): string {
+  const trimmedName = name?.trim() ?? ""
+  if (trimmedName.length === 0) {
+    return "Untitled.md"
+  }
+
+  return trimmedName.toLowerCase().endsWith(".md") ? trimmedName : `${trimmedName}.md`
 }
 
 export async function renameSelected(

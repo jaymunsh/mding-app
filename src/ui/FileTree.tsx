@@ -168,24 +168,26 @@ function TreeRow({
 }: TreeRowProps) {
   const [expanded, setExpanded] = useState(true)
   const isSelected = workspace.selectedNode?.id === node.id
+  const isFolder = node.kind === NodeKind.Folder
+  const isRootFile = node.kind === NodeKind.File && depth === 0
   const hasChildren = node.children.length > 0
-  const padding = `${12 + depth * 14}px`
+  const padding = `${12 + depth * 18}px`
   const canMoveHere = isChoosingMoveTarget && canUseMoveTarget(node, selectedTreeNode)
 
   return (
-    <div className="tree-node">
+    <div className={treeNodeClassName(node.kind, hasChildren)}>
       <button
         className={treeRowClassName(isSelected, canMoveHere)}
         type="button"
         style={{ paddingLeft: padding }}
-        aria-expanded={node.kind === NodeKind.Folder && hasChildren ? expanded : undefined}
+        aria-expanded={isFolder ? expanded : undefined}
         disabled={isChoosingMoveTarget && !canMoveHere}
         onClick={() => {
           if (isChoosingMoveTarget) {
             void workspace.moveSelectedToFolder(node.id).then(onMoveDone)
             return
           }
-          if (node.kind === NodeKind.Folder && hasChildren) {
+          if (isFolder) {
             setExpanded((value) => !value)
           }
           if (isManaging) {
@@ -196,16 +198,20 @@ function TreeRow({
           void workspace.selectNode(node.id)
         }}
       >
-        {node.kind === NodeKind.Folder && hasChildren ? (
+        {isFolder ? (
           <ChevronRight
             className={expanded ? "disclosure open" : "disclosure"}
             size={15}
             aria-hidden="true"
           />
+        ) : isRootFile ? (
+          <span className="root-marker" aria-hidden="true">
+            √
+          </span>
         ) : (
           <span className="disclosure" />
         )}
-        {node.kind === NodeKind.Folder ? (
+        {isFolder ? (
           <Folder size={16} aria-hidden="true" />
         ) : (
           <FileText size={16} aria-hidden="true" />
@@ -234,6 +240,16 @@ function TreeRow({
       ) : null}
     </div>
   )
+}
+
+function treeNodeClassName(kind: NodeKind, hasChildren: boolean): string {
+  return [
+    "tree-node",
+    kind === NodeKind.Folder ? "folder-node" : "",
+    hasChildren ? "has-children" : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
 }
 
 function treeRowClassName(isSelected: boolean, canMoveHere: boolean): string {
