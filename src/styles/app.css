@@ -1159,6 +1159,10 @@ details.markdown-callout > summary::marker {
     padding: var(--space-2) var(--space-3);
   }
 
+  .screen-document .document-header {
+    padding-top: calc(var(--space-2) + env(safe-area-inset-top));
+  }
+
   .document-title-group {
     flex: 1;
     min-width: 0;
