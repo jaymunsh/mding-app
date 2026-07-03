@@ -33,14 +33,7 @@ export function HtmlPreview({ html }: HtmlPreviewProps) {
     }
   }, [colorMode, html, idPrefix])
 
-  return (
-    <iframe
-      className="html-preview-frame"
-      title="HTML preview"
-      sandbox=""
-      srcDoc={preview.srcDoc}
-    />
-  )
+  return <iframe className="html-preview-frame" title="HTML preview" srcDoc={preview.srcDoc} />
 }
 
 async function createHtmlPreviewDocument(
@@ -49,7 +42,6 @@ async function createHtmlPreviewDocument(
   idPrefix: string,
 ): Promise<string> {
   const document = new DOMParser().parseFromString(html, "text/html")
-  removeExecutableElements(document)
   injectPreviewStyle(document, colorMode)
   await renderMermaidBlocks(document, colorMode, idPrefix)
   return `<!doctype html>${document.documentElement.outerHTML}`
@@ -59,12 +51,6 @@ function createLoadingDocument(colorMode: MermaidColorMode): string {
   const foreground = colorMode === "dark" ? "#f3f4ed" : "#181916"
   const background = colorMode === "dark" ? "#0c0d0b" : "#ffffff"
   return `<!doctype html><html><body style="margin:0;padding:20px;color:${foreground};background:${background};font-family:system-ui,sans-serif">Loading HTML preview...</body></html>`
-}
-
-function removeExecutableElements(document: Document): void {
-  document.querySelectorAll("script, iframe, object, embed").forEach((element) => {
-    element.remove()
-  })
 }
 
 function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): void {

@@ -27,9 +27,9 @@ After the first successful online load, the app shell and built assets are cache
 
 ## HTML Preview
 
-HTML files are intentionally preview-only. mding stores the single imported `.html` / `.htm` file in the same local workspace, renders it inside a sandboxed iframe, and removes executable embedded elements before previewing. Static Mermaid blocks such as `<pre class="mermaid">`, `<div class="mermaid">`, and `<code class="language-mermaid">` are rendered by mding before the iframe loads.
+HTML files are preview-only, but they run as normal trusted HTML inside the preview iframe so local controls such as hamburger menus, tabs, and inline scripts can work. Static Mermaid blocks such as `<pre class="mermaid">`, `<div class="mermaid">`, and `<code class="language-mermaid">` are rendered by mding before the iframe loads.
 
-Editing HTML and managing external local asset folders are out of scope for now. Remote URLs, data URLs, and inline CSS can work if the browser can resolve them.
+Editing HTML and managing external local asset folders are out of scope for now. Only import HTML you trust, because scripts in the file are allowed to run.
 
 ## Markdown Support
 
