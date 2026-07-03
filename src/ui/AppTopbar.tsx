@@ -19,7 +19,7 @@ import {
 } from "../app/i18n"
 import { ThemePreference } from "../app/theme"
 
-export const APP_VERSION = "v1.0"
+export const APP_VERSION = "v1.1"
 
 type AppTopbarProps = {
   readonly appLanguage: AppLanguage
@@ -100,7 +100,7 @@ export function AppTopbar({
           onClick={onImportWorkspace}
           aria-label={t("importBackup")}
         >
-          <Upload size={17} aria-hidden="true" />
+          <Download size={17} aria-hidden="true" />
           <span>{t("importBackup")}</span>
         </button>
         <button
@@ -109,7 +109,7 @@ export function AppTopbar({
           onClick={onExportWorkspace}
           aria-label={t("backup")}
         >
-          <Download size={17} aria-hidden="true" />
+          <Upload size={17} aria-hidden="true" />
           <span>{t("backup")}</span>
         </button>
         <button

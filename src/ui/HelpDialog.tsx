@@ -1,10 +1,33 @@
-import { X } from "lucide-react"
-import { type AppLanguage, translate } from "../app/i18n"
+import {
+  CircleHelp,
+  Download,
+  FileInput,
+  FilePlus2,
+  FolderPlus,
+  type LucideIcon,
+  Settings,
+  Upload,
+  X,
+} from "lucide-react"
+import { type AppLanguage, type TranslationKey, translate } from "../app/i18n"
 
 type HelpDialogProps = {
   readonly appLanguage: AppLanguage
   readonly onClose: () => void
 }
+
+const toolbarGuideItems: readonly {
+  readonly icon: LucideIcon
+  readonly textKey: TranslationKey
+}[] = [
+  { icon: FolderPlus, textKey: "helpToolbar1" },
+  { icon: FilePlus2, textKey: "helpToolbar2" },
+  { icon: FileInput, textKey: "helpToolbar3" },
+  { icon: Download, textKey: "helpToolbar4" },
+  { icon: Upload, textKey: "helpToolbar5" },
+  { icon: CircleHelp, textKey: "helpToolbar6" },
+  { icon: Settings, textKey: "helpToolbar7" },
+] as const
 
 export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
@@ -25,6 +48,19 @@ export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
           </button>
         </header>
         <div className="help-content">
+          <section className="help-section">
+            <h3>{t("helpToolbarTitle")}</h3>
+            <ul className="help-toolbar-list">
+              {toolbarGuideItems.map(({ icon: Icon, textKey }) => (
+                <li className="help-toolbar-item" key={textKey}>
+                  <span className="help-toolbar-icon">
+                    <Icon size={14} aria-hidden="true" />
+                  </span>
+                  <span>{t(textKey)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
           <section className="help-section">
             <h3>{t("helpWriteTitle")}</h3>
             <ul>

@@ -171,32 +171,6 @@ function normalizeMarkdownFileName(name: string | undefined): string {
   return trimmedName.toLowerCase().endsWith(".md") ? trimmedName : `${trimmedName}.md`
 }
 
-export async function renameSelected(
-  repository: WorkspaceRepository,
-  setState: StateSetter,
-  selectedId: NodeId | null,
-  name: string,
-): Promise<void> {
-  const trimmedName = name.trim()
-  if (selectedId === null || trimmedName.length === 0) {
-    setState((current) => ({
-      ...current,
-      errorMessage: "Choose a file or folder and enter a name.",
-    }))
-    return
-  }
-
-  await withError(setState, async () => {
-    const nodes = await repository.listNodes()
-    const node = findNode(nodes, selectedId)
-    if (node === null) {
-      throw new Error("Selected item no longer exists.")
-    }
-    await repository.saveNode({ ...node, name: trimmedName, updatedAt: Date.now() })
-    await refreshAfterMutation(repository, setState)
-  })
-}
-
 export async function deleteSelected(
   repository: WorkspaceRepository,
   setState: StateSetter,

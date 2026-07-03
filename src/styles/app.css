@@ -572,6 +572,36 @@ img.brand-mark {
   margin-top: var(--space-2);
 }
 
+.help-section .help-toolbar-list {
+  display: grid;
+  padding-left: 0;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.help-toolbar-item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+}
+
+.help-toolbar-item + .help-toolbar-item {
+  margin-top: 0;
+}
+
+.help-toolbar-icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+}
+
 .help-note {
   margin: 0;
   padding: var(--space-3) var(--space-4) var(--space-4);

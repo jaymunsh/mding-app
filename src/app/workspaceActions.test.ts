@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   createNodeId,
+  DocumentFormat,
   NodeKind,
   type WorkspaceDocument,
   type WorkspaceNode,
 } from "../domain/workspace"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
 import { deleteNodes, moveNodes } from "./workspaceActions"
+import { renameSelected } from "./workspaceRenameActions"
 import { type ControllerState, initialState, type StateSetter } from "./workspaceState"
 
 describe("workspace actions", () => {
@@ -66,6 +68,35 @@ describe("workspace actions", () => {
     expect(state.nodes).toEqual([untouched])
     expect(state.selectedId).toBeNull()
   })
+
+  it("keeps renamed file extensions aligned with document formats", async () => {
+    const markdown = node(NodeKind.File, "Draft.md", null)
+    const html = node(NodeKind.File, "Page.html", null)
+    const folder = node(NodeKind.Folder, "Folder", null)
+    const repository = createMemoryRepository(
+      [markdown, html, folder],
+      [document(markdown.id, DocumentFormat.Markdown), document(html.id, DocumentFormat.Html)],
+    )
+    let state: ControllerState = {
+      ...initialState,
+      nodes: [markdown, html, folder],
+      selectedId: markdown.id,
+    }
+    const setState: StateSetter = (update) => {
+      state = typeof update === "function" ? update(state) : update
+    }
+
+    await renameSelected(repository, setState, markdown.id, "Daily")
+    await renameSelected(repository, setState, html.id, "Reference")
+    await renameSelected(repository, setState, folder.id, "Archive")
+
+    expect(state.errorMessage).toBeNull()
+    expect(state.nodes.map((item) => item.name).sort()).toEqual([
+      "Archive",
+      "Daily.md",
+      "Reference.html",
+    ])
+  })
 })
 
 function node(kind: NodeKind, name: string, parentId: WorkspaceNode["parentId"]): WorkspaceNode {
@@ -79,9 +110,21 @@ function node(kind: NodeKind, name: string, parentId: WorkspaceNode["parentId"])
   }
 }
 
-function createMemoryRepository(initialNodes: readonly WorkspaceNode[]): WorkspaceRepository {
+function document(id: WorkspaceDocument["id"], format: DocumentFormat): WorkspaceDocument {
+  return {
+    id,
+    markdown: "",
+    format,
+    updatedAt: 1,
+  }
+}
+
+function createMemoryRepository(
+  initialNodes: readonly WorkspaceNode[],
+  initialDocuments: readonly WorkspaceDocument[] = [],
+): WorkspaceRepository {
   let nodes = [...initialNodes]
-  const documents: readonly WorkspaceDocument[] = []
+  let documents = [...initialDocuments]
 
   return {
     seedIfEmpty: async () => {},
@@ -91,7 +134,9 @@ function createMemoryRepository(initialNodes: readonly WorkspaceNode[]): Workspa
     saveNode: async (node) => {
       nodes = [...nodes.filter((item) => item.id !== node.id), node]
     },
-    saveDocument: async () => {},
+    saveDocument: async (document) => {
+      documents = [...documents.filter((item) => item.id !== document.id), document]
+    },
     deleteNode: async (id) => {
       nodes = nodes.filter((node) => node.id !== id)
     },

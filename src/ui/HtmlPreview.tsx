@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 import { createHtmlPreviewBridgeScript } from "./htmlPreviewBridge"
-import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./MarkdownPreview"
+import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./MermaidPreview"
 
 type HtmlPreviewProps = {
   readonly appLanguage: AppLanguage

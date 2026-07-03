@@ -1,4 +1,4 @@
-import type { MermaidColorMode } from "./MarkdownPreview"
+import type { MermaidColorMode } from "./MermaidPreview"
 
 export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom = 1): string {
   return `

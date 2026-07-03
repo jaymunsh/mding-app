@@ -13,10 +13,10 @@ import {
   initializeWorkspace,
   moveSelected,
   moveNodes as moveWorkspaceNodes,
-  renameSelected,
   saveSelectedDocument,
   selectNode,
 } from "./workspaceActions"
+import { renameSelected } from "./workspaceRenameActions"
 import { initialState, messageFromError, Screen } from "./workspaceState"
 import {
   exportSelectedDocument,
