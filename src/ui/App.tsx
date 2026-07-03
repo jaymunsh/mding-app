@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  CircleHelp,
   Download,
   FileInput,
   FilePlus2,
@@ -8,6 +9,7 @@ import {
   Moon,
   Sun,
   Upload,
+  X,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import {
@@ -25,6 +27,7 @@ export function App() {
   const documentInputRef = useRef<HTMLInputElement>(null)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
   const [themePreference, setThemePreference] = useState(readThemePreference)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
 
   useEffect(() => {
     applyThemePreference(themePreference)
@@ -81,13 +84,22 @@ export function App() {
             <span>Import backup</span>
           </button>
           <button
-            className="toolbar-button primary"
+            className="toolbar-button"
             type="button"
             onClick={workspace.exportWorkspace}
             aria-label="Backup"
           >
             <Download size={17} aria-hidden="true" />
             <span>Backup</span>
+          </button>
+          <button
+            className="toolbar-button"
+            type="button"
+            onClick={() => setIsHelpOpen(true)}
+            aria-label="Quick guide"
+          >
+            <CircleHelp size={17} aria-hidden="true" />
+            <span>Guide</span>
           </button>
           <fieldset className="theme-switcher">
             <legend>Theme</legend>
@@ -169,6 +181,30 @@ export function App() {
           event.currentTarget.value = ""
         }}
       />
+      {isHelpOpen ? <HelpDialog onClose={() => setIsHelpOpen(false)} /> : null}
+    </div>
+  )
+}
+
+function HelpDialog({ onClose }: { readonly onClose: () => void }) {
+  return (
+    <div className="help-overlay">
+      <button className="help-backdrop" type="button" onClick={onClose} aria-label="Close guide" />
+      <section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <header className="help-header">
+          <h2 id="help-title">Quick guide</h2>
+          <button type="button" onClick={onClose} aria-label="Close guide">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </header>
+        <ul className="help-list">
+          <li>Create folders and Markdown files from the toolbar.</li>
+          <li>Import Markdown, HTML, or a backup zip from your device.</li>
+          <li>Open a file to preview it, then use Edit for Markdown source.</li>
+          <li>Use Backup regularly before clearing browser data or reinstalling.</li>
+        </ul>
+        <p className="help-note">All workspace data stays in this browser app storage.</p>
+      </section>
     </div>
   )
 }
