@@ -62,18 +62,33 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
     }
   }
 
-  function postScrollDelta(deltaY) {
+  var pendingScrollDeltaY = 0
+  var scrollDeltaFrame = 0
+
+  function flushScrollDelta() {
+    scrollDeltaFrame = 0
+    if (pendingScrollDeltaY === 0) {
+      return
+    }
     window.parent.postMessage({
       type: "mding:html-scroll-delta",
-      deltaY: deltaY
+      deltaY: pendingScrollDeltaY
     }, "*")
+    pendingScrollDeltaY = 0
+  }
+
+  function queueScrollDelta(deltaY) {
+    pendingScrollDeltaY += deltaY
+    if (scrollDeltaFrame === 0) {
+      scrollDeltaFrame = window.requestAnimationFrame(flushScrollDelta)
+    }
   }
 
   syncTheme()
 
   document.addEventListener("wheel", function (event) {
     event.preventDefault()
-    postScrollDelta(event.deltaY)
+    queueScrollDelta(event.deltaY)
   }, { passive: false })
 
   var lastTouchY = null
@@ -88,7 +103,7 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
       return
     }
     var nextTouchY = event.touches[0].clientY
-    postScrollDelta(lastTouchY - nextTouchY)
+    queueScrollDelta(lastTouchY - nextTouchY)
     lastTouchY = nextTouchY
     event.preventDefault()
   }, { passive: false })

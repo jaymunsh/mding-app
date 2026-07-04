@@ -2,6 +2,7 @@ import { z } from "zod"
 
 const readingProgressStorageKey = "mding.readingProgress.v1"
 const minimumVisibleRatio = 0.005
+const minimumUpdateDelta = 0.002
 const ReadingProgressMapSchema = z.record(z.string(), z.number().min(0).max(1))
 
 export type ReadingProgressMap = Readonly<Record<string, number>>
@@ -38,7 +39,14 @@ export function updateReadingProgress(
 ): ReadingProgressMap {
   const normalizedRatio = normalizeReadingProgressRatio(ratio)
   if (normalizedRatio === 0) {
+    if (!(documentId in progress)) {
+      return progress
+    }
     return Object.fromEntries(Object.entries(progress).filter(([key]) => key !== documentId))
+  }
+  const currentRatio = progress[documentId]
+  if (currentRatio !== undefined && Math.abs(currentRatio - normalizedRatio) < minimumUpdateDelta) {
+    return progress
   }
   return {
     ...progress,

@@ -37,6 +37,7 @@ describe("HTML preview bridge", () => {
     expect(script).toContain('type: "mding:html-scroll-delta"')
     expect(script).toContain('document.addEventListener("wheel"')
     expect(script).toContain('document.addEventListener("touchmove"')
+    expect(script).toContain("window.requestAnimationFrame(flushScrollDelta)")
     expect(script).toContain("event.preventDefault()")
   })
 

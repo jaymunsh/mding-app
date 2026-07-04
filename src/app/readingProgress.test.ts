@@ -38,6 +38,13 @@ describe("reading progress", () => {
     expect(formatReadingProgressPercent(0.426)).toBe("43%")
     expect(formatReadingProgressPercent(0.997)).toBe("100%")
   })
+
+  it("keeps the same progress map when the visible progress barely changes", () => {
+    const progress = { "document-1": 0.428 }
+
+    expect(updateReadingProgress(progress, "document-1", 0.429)).toBe(progress)
+    expect(updateReadingProgress({}, "document-1", 0.001)).toEqual({})
+  })
 })
 
 function createStorageFake(): Storage {

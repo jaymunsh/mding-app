@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef } from "react"
 
-const progressSaveDelayMs = 250
+const progressSaveDelayMs = 900
 const restoreFrameCount = 45
 
 type ScrollProgressOptions = {

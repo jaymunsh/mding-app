@@ -191,6 +191,9 @@ export function useWorkspaceController(): WorkspaceController {
     setDocumentReadingProgress: (id, ratio) =>
       setState((current) => {
         const readingProgress = updateReadingProgress(current.readingProgress, id, ratio)
+        if (readingProgress === current.readingProgress) {
+          return current
+        }
         writeReadingProgress(readingProgress)
         return { ...current, readingProgress }
       }),
