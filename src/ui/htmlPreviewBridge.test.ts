@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseHtmlAnchorScrollMessage, parseHtmlScrollDeltaMessage } from "./HtmlPreview"
+import { parseHtmlReadingProgressMessage } from "./HtmlPreview"
 import { createHtmlPreviewBridgeScript } from "./htmlPreviewBridge"
 
 describe("HTML preview bridge", () => {
@@ -8,8 +8,9 @@ describe("HTML preview bridge", () => {
 
     expect(script).toContain('document.addEventListener("click"')
     expect(script).toContain("event.preventDefault()")
-    expect(script).toContain("window.scrollBy")
+    expect(script).toContain("window.scrollTo")
     expect(script).toContain("requestAnimationFrame")
+    expect(script).not.toContain("mding:html-anchor-scroll")
     expect(script).not.toContain("window.location")
     expect(script).not.toContain("location.href")
   })
@@ -23,50 +24,49 @@ describe("HTML preview bridge", () => {
     expect(script).toContain("document.documentElement.style.colorScheme = appTheme")
   })
 
-  it("posts in-page anchor scroll requests to the parent viewer", () => {
+  it("lets the imported HTML document scroll natively inside the iframe", () => {
     const script = createHtmlPreviewBridgeScript("light")
 
-    expect(script).toContain('type: "mding:html-anchor-scroll"')
-    expect(script).toContain("target.offsetTop")
+    expect(script).not.toContain("mding:html-scroll-delta")
+    expect(script).not.toContain('document.addEventListener("wheel"')
+    expect(script).not.toContain('document.addEventListener("touchmove"')
+    expect(script).not.toContain("flushScrollDelta")
+  })
+
+  it("posts iframe reading progress to the parent viewer", () => {
+    const script = createHtmlPreviewBridgeScript("light", 1, 0.4)
+
+    expect(script).toContain("var initialReadingProgress = 0.4")
+    expect(script).toContain('type: "mding:html-reading-progress"')
+    expect(script).toContain('window.addEventListener("scroll"')
     expect(script).toContain("window.parent.postMessage")
   })
 
-  it("posts iframe wheel and touch scroll deltas to the parent viewer", () => {
-    const script = createHtmlPreviewBridgeScript("light")
-
-    expect(script).toContain('type: "mding:html-scroll-delta"')
-    expect(script).toContain('document.addEventListener("wheel"')
-    expect(script).toContain('document.addEventListener("touchmove"')
-    expect(script).toContain("window.requestAnimationFrame(flushScrollDelta)")
-    expect(script).toContain("event.preventDefault()")
-  })
-
-  it("parses iframe anchor scroll messages", () => {
+  it("parses iframe reading progress messages", () => {
     expect(
-      parseHtmlAnchorScrollMessage({
-        type: "mding:html-anchor-scroll",
-        top: 42,
+      parseHtmlReadingProgressMessage({
+        type: "mding:html-reading-progress",
+        ratio: 0.42,
       }),
-    ).toBe(42)
+    ).toBe(0.42)
     expect(
-      parseHtmlAnchorScrollMessage({
-        type: "mding:html-anchor-scroll",
-        top: -2,
+      parseHtmlReadingProgressMessage({
+        type: "mding:html-reading-progress",
+        ratio: -1,
       }),
     ).toBe(0)
-    expect(parseHtmlAnchorScrollMessage({ type: "other", top: 40 })).toBeNull()
-  })
-
-  it("parses iframe scroll delta messages", () => {
     expect(
-      parseHtmlScrollDeltaMessage({
-        type: "mding:html-scroll-delta",
-        deltaY: 120,
+      parseHtmlReadingProgressMessage({
+        type: "mding:html-reading-progress",
+        ratio: 2,
       }),
-    ).toBe(120)
+    ).toBe(1)
     expect(
-      parseHtmlScrollDeltaMessage({ type: "mding:html-scroll-delta", deltaY: Number.NaN }),
+      parseHtmlReadingProgressMessage({
+        type: "mding:html-reading-progress",
+        ratio: Number.NaN,
+      }),
     ).toBeNull()
-    expect(parseHtmlScrollDeltaMessage({ type: "other", deltaY: 120 })).toBeNull()
+    expect(parseHtmlReadingProgressMessage({ type: "other", ratio: 0.5 })).toBeNull()
   })
 })

@@ -1,14 +1,15 @@
-import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 import { createHtmlPreviewBridgeScript } from "./htmlPreviewBridge"
 import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./MermaidPreview"
 
 type HtmlPreviewProps = {
   readonly appLanguage: AppLanguage
+  readonly documentId: string
   readonly html: string
+  readonly readingProgressRatio: number
   readonly zoom: number
-  readonly onAnchorScroll: (top: number) => void
-  readonly onScrollDelta: (deltaY: number) => void
+  readonly onReadingProgressChange: (documentId: string, ratio: number) => void
 }
 
 type HtmlPreviewState = {
@@ -17,25 +18,36 @@ type HtmlPreviewState = {
 
 export function HtmlPreview({
   appLanguage,
+  documentId,
   html,
+  readingProgressRatio,
   zoom,
-  onAnchorScroll,
-  onScrollDelta,
+  onReadingProgressChange,
 }: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const latestReadingProgressRef = useRef(readingProgressRatio)
   const colorMode = useMermaidColorMode()
   const [preview, setPreview] = useState<HtmlPreviewState>(() => ({
     srcDoc: createLoadingDocument(colorMode, zoom, appLanguage),
   }))
-  const [contentHeight, setContentHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    latestReadingProgressRef.current = readingProgressRatio
+  }, [readingProgressRatio])
 
   useEffect(() => {
     let cancelled = false
 
     async function buildPreview(): Promise<void> {
       try {
-        const srcDoc = await createHtmlPreviewDocument(html, colorMode, idPrefix, zoom)
+        const srcDoc = await createHtmlPreviewDocument(
+          html,
+          colorMode,
+          idPrefix,
+          zoom,
+          latestReadingProgressRef.current,
+        )
         if (!cancelled) {
           setPreview({ srcDoc })
         }
@@ -60,84 +72,54 @@ export function HtmlPreview({
       if (event.source !== iframeRef.current?.contentWindow) {
         return
       }
-      const top = parseHtmlAnchorScrollMessage(event.data)
-      if (top !== null) {
-        onAnchorScroll(top)
-        return
-      }
-      const deltaY = parseHtmlScrollDeltaMessage(event.data)
-      if (deltaY !== null) {
-        onScrollDelta(deltaY)
+      const ratio = parseHtmlReadingProgressMessage(event.data)
+      if (ratio !== null) {
+        onReadingProgressChange(documentId, ratio)
       }
     }
 
     window.addEventListener("message", handleMessage)
-    return () => window.removeEventListener("message", handleMessage)
-  }, [onAnchorScroll, onScrollDelta])
-
-  const iframeStyle = createIframeStyle(contentHeight)
+    return () => {
+      window.removeEventListener("message", handleMessage)
+      const finalRatio = readIframeReadingProgress(iframeRef.current)
+      if (finalRatio !== null) {
+        onReadingProgressChange(documentId, finalRatio)
+      }
+    }
+  }, [documentId, onReadingProgressChange])
 
   return (
     <iframe
       className="html-preview-frame"
       ref={iframeRef}
-      style={iframeStyle}
+      scrolling="yes"
       title="HTML preview"
       srcDoc={preview.srcDoc}
-      onLoad={() => syncIframeHeight(iframeRef.current, setContentHeight)}
     />
   )
 }
 
-export function parseHtmlAnchorScrollMessage(data: unknown): number | null {
-  if (typeof data !== "object" || data === null || !("type" in data) || !("top" in data)) {
+export function parseHtmlReadingProgressMessage(data: unknown): number | null {
+  if (typeof data !== "object" || data === null || !("type" in data) || !("ratio" in data)) {
     return null
   }
-  if (data.type !== "mding:html-anchor-scroll" || typeof data.top !== "number") {
+  if (data.type !== "mding:html-reading-progress" || typeof data.ratio !== "number") {
     return null
   }
-  if (!Number.isFinite(data.top)) {
+  return clampRatio(data.ratio)
+}
+
+function readIframeReadingProgress(iframe: HTMLIFrameElement | null): number | null {
+  const frameWindow = iframe?.contentWindow
+  const documentElement = iframe?.contentDocument?.documentElement
+  if (frameWindow === undefined || frameWindow === null || documentElement === undefined) {
     return null
   }
-  if (data.top <= 0) {
+  const maxScrollTop = documentElement.scrollHeight - frameWindow.innerHeight
+  if (maxScrollTop <= 0) {
     return 0
   }
-  return data.top
-}
-
-export function parseHtmlScrollDeltaMessage(data: unknown): number | null {
-  if (typeof data !== "object" || data === null || !("type" in data) || !("deltaY" in data)) {
-    return null
-  }
-  if (data.type !== "mding:html-scroll-delta" || typeof data.deltaY !== "number") {
-    return null
-  }
-  return Number.isFinite(data.deltaY) ? data.deltaY : null
-}
-
-function createIframeStyle(contentHeight: number | null): CSSProperties {
-  return contentHeight === null ? {} : { height: `${contentHeight}px` }
-}
-
-function syncIframeHeight(
-  iframe: HTMLIFrameElement | null,
-  setContentHeight: (height: number) => void,
-): void {
-  let frame = 0
-
-  function sync(): void {
-    const documentElement = iframe?.contentDocument?.documentElement
-    if (documentElement === undefined || documentElement === null) {
-      return
-    }
-    setContentHeight(documentElement.scrollHeight)
-    frame += 1
-    if (frame < 45) {
-      window.requestAnimationFrame(sync)
-    }
-  }
-
-  window.requestAnimationFrame(sync)
+  return clampRatio(frameWindow.scrollY / maxScrollTop)
 }
 
 async function createHtmlPreviewDocument(
@@ -145,11 +127,12 @@ async function createHtmlPreviewDocument(
   colorMode: MermaidColorMode,
   idPrefix: string,
   zoom: number,
+  readingProgressRatio: number,
 ): Promise<string> {
   const document = new DOMParser().parseFromString(html, "text/html")
   injectPreviewStyle(document, colorMode)
   await renderMermaidBlocks(document, colorMode, idPrefix)
-  injectPreviewBridge(document, colorMode, zoom)
+  injectPreviewBridge(document, colorMode, zoom, readingProgressRatio)
   return `<!doctype html>${document.documentElement.outerHTML}`
 }
 
@@ -200,9 +183,14 @@ function injectPreviewStyle(document: Document, colorMode: MermaidColorMode): vo
   document.head.append(style)
 }
 
-function injectPreviewBridge(document: Document, colorMode: MermaidColorMode, zoom: number): void {
+function injectPreviewBridge(
+  document: Document,
+  colorMode: MermaidColorMode,
+  zoom: number,
+  readingProgressRatio: number,
+): void {
   const script = document.createElement("script")
-  script.textContent = createHtmlPreviewBridgeScript(colorMode, zoom)
+  script.textContent = createHtmlPreviewBridgeScript(colorMode, zoom, readingProgressRatio)
   document.body.append(script)
 }
 
@@ -298,4 +286,17 @@ function messageFromError(error: unknown): string {
     return error.message
   }
   return "Unable to render Mermaid diagram."
+}
+
+function clampRatio(ratio: number): number | null {
+  if (!Number.isFinite(ratio)) {
+    return null
+  }
+  if (ratio <= 0) {
+    return 0
+  }
+  if (ratio >= 1) {
+    return 1
+  }
+  return ratio
 }

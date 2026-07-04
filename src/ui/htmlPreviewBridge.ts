@@ -1,10 +1,18 @@
 import type { MermaidColorMode } from "./MermaidPreview"
 
-export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom = 1): string {
+export function createHtmlPreviewBridgeScript(
+  colorMode: MermaidColorMode,
+  zoom = 1,
+  initialReadingProgress = 0,
+): string {
   return `
 ;(function () {
   var appTheme = ${JSON.stringify(colorMode)}
   var previewZoom = ${JSON.stringify(zoom)}
+  var initialReadingProgress = ${JSON.stringify(clampProgress(initialReadingProgress))}
+  var restoreFrameCount = 45
+  var progressSaveDelayMs = 900
+  var progressTimer = 0
 
   function syncTheme() {
     document.documentElement.dataset.mdingTheme = appTheme
@@ -27,9 +35,75 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
     }
   }
 
+  function clampProgress(ratio) {
+    if (!Number.isFinite(ratio) || ratio <= 0) {
+      return 0
+    }
+    if (ratio >= 1) {
+      return 1
+    }
+    return ratio
+  }
+
+  function maxScrollTop() {
+    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+  }
+
+  function readingProgress() {
+    var maxTop = maxScrollTop()
+    if (maxTop <= 0) {
+      return 0
+    }
+    return clampProgress(window.scrollY / maxTop)
+  }
+
+  function postReadingProgress() {
+    window.parent.postMessage({
+      type: "mding:html-reading-progress",
+      ratio: readingProgress()
+    }, "*")
+  }
+
+  function scheduleReadingProgress() {
+    if (progressTimer !== 0) {
+      window.clearTimeout(progressTimer)
+    }
+    progressTimer = window.setTimeout(function () {
+      progressTimer = 0
+      postReadingProgress()
+    }, progressSaveDelayMs)
+  }
+
+  function restoreReadingProgress() {
+    if (initialReadingProgress <= 0) {
+      return
+    }
+    var frame = 0
+    var lastAppliedTop = null
+
+    function restore() {
+      var nextTop = Math.round(maxScrollTop() * initialReadingProgress)
+      if (lastAppliedTop === null && window.scrollY > 2 && Math.abs(window.scrollY - nextTop) > 2) {
+        return
+      }
+      if (lastAppliedTop !== null && Math.abs(window.scrollY - lastAppliedTop) > 2) {
+        return
+      }
+      window.scrollTo({ top: nextTop, left: 0, behavior: "auto" })
+      lastAppliedTop = nextTop
+      frame += 1
+      if (frame < restoreFrameCount) {
+        requestAnimationFrame(restore)
+      }
+    }
+
+    requestAnimationFrame(restore)
+  }
+
   function scrollToHashTarget(id) {
     if (id === "") {
-      document.documentElement.scrollTo({ top: 0, left: 0 })
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+      postReadingProgress()
       return
     }
     var target = document.getElementById(id)
@@ -37,22 +111,20 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
       var html = document.documentElement
       var previousScrollBehavior = html.style.scrollBehavior
       var scrollPaddingTop = parseFloat(getComputedStyle(html).scrollPaddingTop) || 0
-      var parentTop = Math.max(0, target.offsetTop - scrollPaddingTop)
+      var targetTop = Math.max(0, target.offsetTop - scrollPaddingTop)
       var attempts = 0
       html.style.scrollBehavior = "auto"
-      window.parent.postMessage({
-        type: "mding:html-anchor-scroll",
-        top: parentTop
-      }, "*")
+      window.scrollTo({ top: targetTop, left: 0, behavior: "auto" })
 
       function alignTarget() {
         var top = target.getBoundingClientRect().top - scrollPaddingTop
         if (Math.abs(top) > 2) {
-          window.scrollBy({ top: top, left: 0, behavior: "auto" })
+          window.scrollTo({ top: Math.max(0, window.scrollY + top), left: 0, behavior: "auto" })
         }
         attempts += 1
         if (attempts >= 45) {
           html.style.scrollBehavior = previousScrollBehavior
+          postReadingProgress()
           return
         }
         requestAnimationFrame(alignTarget)
@@ -62,51 +134,11 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
     }
   }
 
-  var pendingScrollDeltaY = 0
-  var scrollDeltaFrame = 0
-
-  function flushScrollDelta() {
-    scrollDeltaFrame = 0
-    if (pendingScrollDeltaY === 0) {
-      return
-    }
-    window.parent.postMessage({
-      type: "mding:html-scroll-delta",
-      deltaY: pendingScrollDeltaY
-    }, "*")
-    pendingScrollDeltaY = 0
-  }
-
-  function queueScrollDelta(deltaY) {
-    pendingScrollDeltaY += deltaY
-    if (scrollDeltaFrame === 0) {
-      scrollDeltaFrame = window.requestAnimationFrame(flushScrollDelta)
-    }
-  }
-
   syncTheme()
-
-  document.addEventListener("wheel", function (event) {
-    event.preventDefault()
-    queueScrollDelta(event.deltaY)
-  }, { passive: false })
-
-  var lastTouchY = null
-  document.addEventListener("touchstart", function (event) {
-    if (event.touches.length > 0) {
-      lastTouchY = event.touches[0].clientY
-    }
-  }, { passive: true })
-
-  document.addEventListener("touchmove", function (event) {
-    if (lastTouchY === null || event.touches.length === 0) {
-      return
-    }
-    var nextTouchY = event.touches[0].clientY
-    queueScrollDelta(lastTouchY - nextTouchY)
-    lastTouchY = nextTouchY
-    event.preventDefault()
-  }, { passive: false })
+  restoreReadingProgress()
+  window.addEventListener("scroll", scheduleReadingProgress, { passive: true })
+  window.addEventListener("pagehide", postReadingProgress)
+  window.addEventListener("beforeunload", postReadingProgress)
 
   document.addEventListener("click", function (event) {
     var target = event.target
@@ -126,4 +158,14 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
   }, true)
 })()
 `
+}
+
+function clampProgress(ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio <= 0) {
+    return 0
+  }
+  if (ratio >= 1) {
+    return 1
+  }
+  return ratio
 }

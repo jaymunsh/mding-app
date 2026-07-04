@@ -304,7 +304,7 @@ function DocumentPreview({
   readonly zoom: number
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
 }) {
-  const previewRef = useScrollProgress<HTMLElement>({
+  const markdownPreviewRef = useScrollProgress<HTMLElement>({
     documentId,
     enabled: true,
     initialRatio: readingProgressRatio,
@@ -313,26 +313,19 @@ function DocumentPreview({
   const markdownZoomStyle = createMarkdownZoomStyle(zoom)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
 
-  function handleHtmlAnchorScroll(top: number): void {
-    previewRef.current?.scrollTo({ top, left: 0, behavior: "auto" })
-  }
-
-  function handleHtmlScrollDelta(deltaY: number): void {
-    previewRef.current?.scrollBy({ top: deltaY, left: 0, behavior: "auto" })
-  }
-
   switch (documentFormat) {
     case DocumentFormat.Html:
       return (
-        <article className="html-preview" ref={previewRef}>
+        <article className="html-preview">
           <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`html:${zoom}:${source}`}>
             <Suspense fallback={<p>{t("loadingPreview")}</p>}>
               <HtmlPreview
                 appLanguage={appLanguage}
+                documentId={documentId}
                 html={source}
+                readingProgressRatio={readingProgressRatio}
                 zoom={zoom}
-                onAnchorScroll={handleHtmlAnchorScroll}
-                onScrollDelta={handleHtmlScrollDelta}
+                onReadingProgressChange={onReadingProgressChange}
               />
             </Suspense>
           </PreviewErrorBoundary>
@@ -346,7 +339,7 @@ function DocumentPreview({
       )
     case DocumentFormat.Markdown:
       return (
-        <article className="markdown-preview" ref={previewRef}>
+        <article className="markdown-preview" ref={markdownPreviewRef}>
           <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`markdown:${zoom}:${source}`}>
             <div className="markdown-body" style={markdownZoomStyle}>
               <Suspense fallback={<p>{t("loadingPreview")}</p>}>
