@@ -62,6 +62,8 @@ const messages = {
       "Markdown supports tables, task lists, callouts, Mermaid, URL images, and highlighted code blocks for bash, css, go, html, java, js/jsx, json, markdown, python, rust, sql, swift, ts/tsx, and yaml.",
     helpPreview2: "HTML files are preview-only and keep their own layout inside the viewer.",
     helpPreview3: "Zoom controls change the document scale without changing the saved file.",
+    helpPreview4:
+      "The app remembers each document's last reading position locally and shows a small percent in the file list.",
     helpPreviewTitle: "Preview",
     helpTitle: "Quick guide",
     helpWrite1: "Create folders and Markdown files from the top toolbar.",
@@ -163,6 +165,8 @@ const messages = {
       "Markdown은 표, 작업 목록, 콜아웃, Mermaid, URL 이미지와 bash, css, go, html, java, js/jsx, json, markdown, python, rust, sql, swift, ts/tsx, yaml 코드블럭 하이라이트를 지원합니다.",
     helpPreview2: "HTML 파일은 읽기 전용 미리보기이며 뷰어 안에서 자체 레이아웃을 유지합니다.",
     helpPreview3: "확대/축소는 저장된 파일을 바꾸지 않고 문서 표시 배율만 조정합니다.",
+    helpPreview4:
+      "문서별 마지막 읽기 위치를 로컬에 기억하고, 파일 목록에는 작은 퍼센트로 표시합니다.",
     helpPreviewTitle: "미리보기",
     helpTitle: "빠른 가이드",
     helpWrite1: "상단 도구막대에서 폴더와 Markdown 파일을 만들 수 있습니다.",

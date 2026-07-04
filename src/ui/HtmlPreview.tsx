@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 import { createHtmlPreviewBridgeScript } from "./htmlPreviewBridge"
 import { type MermaidColorMode, renderMermaidSvg, useMermaidColorMode } from "./MermaidPreview"
@@ -7,18 +7,28 @@ type HtmlPreviewProps = {
   readonly appLanguage: AppLanguage
   readonly html: string
   readonly zoom: number
+  readonly onAnchorScroll: (top: number) => void
+  readonly onScrollDelta: (deltaY: number) => void
 }
 
 type HtmlPreviewState = {
   readonly srcDoc: string
 }
 
-export function HtmlPreview({ appLanguage, html, zoom }: HtmlPreviewProps) {
+export function HtmlPreview({
+  appLanguage,
+  html,
+  zoom,
+  onAnchorScroll,
+  onScrollDelta,
+}: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const colorMode = useMermaidColorMode()
   const [preview, setPreview] = useState<HtmlPreviewState>(() => ({
     srcDoc: createLoadingDocument(colorMode, zoom, appLanguage),
   }))
+  const [contentHeight, setContentHeight] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,7 +55,89 @@ export function HtmlPreview({ appLanguage, html, zoom }: HtmlPreviewProps) {
     }
   }, [appLanguage, colorMode, html, idPrefix, zoom])
 
-  return <iframe className="html-preview-frame" title="HTML preview" srcDoc={preview.srcDoc} />
+  useEffect(() => {
+    function handleMessage(event: MessageEvent): void {
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return
+      }
+      const top = parseHtmlAnchorScrollMessage(event.data)
+      if (top !== null) {
+        onAnchorScroll(top)
+        return
+      }
+      const deltaY = parseHtmlScrollDeltaMessage(event.data)
+      if (deltaY !== null) {
+        onScrollDelta(deltaY)
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [onAnchorScroll, onScrollDelta])
+
+  const iframeStyle = createIframeStyle(contentHeight)
+
+  return (
+    <iframe
+      className="html-preview-frame"
+      ref={iframeRef}
+      style={iframeStyle}
+      title="HTML preview"
+      srcDoc={preview.srcDoc}
+      onLoad={() => syncIframeHeight(iframeRef.current, setContentHeight)}
+    />
+  )
+}
+
+export function parseHtmlAnchorScrollMessage(data: unknown): number | null {
+  if (typeof data !== "object" || data === null || !("type" in data) || !("top" in data)) {
+    return null
+  }
+  if (data.type !== "mding:html-anchor-scroll" || typeof data.top !== "number") {
+    return null
+  }
+  if (!Number.isFinite(data.top)) {
+    return null
+  }
+  if (data.top <= 0) {
+    return 0
+  }
+  return data.top
+}
+
+export function parseHtmlScrollDeltaMessage(data: unknown): number | null {
+  if (typeof data !== "object" || data === null || !("type" in data) || !("deltaY" in data)) {
+    return null
+  }
+  if (data.type !== "mding:html-scroll-delta" || typeof data.deltaY !== "number") {
+    return null
+  }
+  return Number.isFinite(data.deltaY) ? data.deltaY : null
+}
+
+function createIframeStyle(contentHeight: number | null): CSSProperties {
+  return contentHeight === null ? {} : { height: `${contentHeight}px` }
+}
+
+function syncIframeHeight(
+  iframe: HTMLIFrameElement | null,
+  setContentHeight: (height: number) => void,
+): void {
+  let frame = 0
+
+  function sync(): void {
+    const documentElement = iframe?.contentDocument?.documentElement
+    if (documentElement === undefined || documentElement === null) {
+      return
+    }
+    setContentHeight(documentElement.scrollHeight)
+    frame += 1
+    if (frame < 45) {
+      window.requestAnimationFrame(sync)
+    }
+  }
+
+  window.requestAnimationFrame(sync)
 }
 
 async function createHtmlPreviewDocument(

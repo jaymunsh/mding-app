@@ -37,8 +37,13 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
       var html = document.documentElement
       var previousScrollBehavior = html.style.scrollBehavior
       var scrollPaddingTop = parseFloat(getComputedStyle(html).scrollPaddingTop) || 0
+      var parentTop = Math.max(0, target.offsetTop - scrollPaddingTop)
       var attempts = 0
       html.style.scrollBehavior = "auto"
+      window.parent.postMessage({
+        type: "mding:html-anchor-scroll",
+        top: parentTop
+      }, "*")
 
       function alignTarget() {
         var top = target.getBoundingClientRect().top - scrollPaddingTop
@@ -57,7 +62,36 @@ export function createHtmlPreviewBridgeScript(colorMode: MermaidColorMode, zoom 
     }
   }
 
+  function postScrollDelta(deltaY) {
+    window.parent.postMessage({
+      type: "mding:html-scroll-delta",
+      deltaY: deltaY
+    }, "*")
+  }
+
   syncTheme()
+
+  document.addEventListener("wheel", function (event) {
+    event.preventDefault()
+    postScrollDelta(event.deltaY)
+  }, { passive: false })
+
+  var lastTouchY = null
+  document.addEventListener("touchstart", function (event) {
+    if (event.touches.length > 0) {
+      lastTouchY = event.touches[0].clientY
+    }
+  }, { passive: true })
+
+  document.addEventListener("touchmove", function (event) {
+    if (lastTouchY === null || event.touches.length === 0) {
+      return
+    }
+    var nextTouchY = event.touches[0].clientY
+    postScrollDelta(lastTouchY - nextTouchY)
+    lastTouchY = nextTouchY
+    event.preventDefault()
+  }, { passive: false })
 
   document.addEventListener("click", function (event) {
     var target = event.target

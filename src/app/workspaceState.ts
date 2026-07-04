@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react"
 import type { NodeId, WorkspaceDocument, WorkspaceNode } from "../domain/workspace"
+import type { ReadingProgressMap } from "./readingProgress"
 
 export const Screen = {
   Browser: "browser",
@@ -17,6 +18,7 @@ export type ControllerState = {
   readonly screen: Screen
   readonly errorMessage: string | null
   readonly storagePersisted: boolean
+  readonly readingProgress: ReadingProgressMap
 }
 
 export type StateSetter = Dispatch<SetStateAction<ControllerState>>
@@ -30,6 +32,7 @@ export const initialState: ControllerState = {
   screen: Screen.Browser,
   errorMessage: null,
   storagePersisted: false,
+  readingProgress: {},
 }
 
 export function messageFromError(error: unknown): string {

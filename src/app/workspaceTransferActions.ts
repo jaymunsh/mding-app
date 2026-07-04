@@ -1,5 +1,4 @@
-import { getFolderTarget } from "../domain/tree"
-import type { NodeId, WorkspaceDocument, WorkspaceNode } from "../domain/workspace"
+import type { WorkspaceDocument, WorkspaceNode } from "../domain/workspace"
 import {
   createDocumentFileBlob,
   createSnapshotFromDocumentFiles,
@@ -15,16 +14,13 @@ import { messageFromError, type StateSetter } from "./workspaceState"
 type DocumentImportRequest = {
   readonly repository: WorkspaceRepository
   readonly setState: StateSetter
-  readonly nodes: readonly WorkspaceNode[]
-  readonly selectedId: NodeId | null
   readonly files: readonly File[]
 }
 
 export async function importDocumentFiles(request: DocumentImportRequest): Promise<void> {
   await withError(request.setState, async () => {
-    const parentId = getFolderTarget(request.nodes, request.selectedId)
     const imports = await parseDocumentFiles(request.files)
-    const snapshot = createSnapshotFromDocumentFiles(imports, parentId)
+    const snapshot = createSnapshotFromDocumentFiles(imports, null)
     for (const node of snapshot.nodes) {
       await request.repository.saveNode(node)
     }

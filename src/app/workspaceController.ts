@@ -6,6 +6,7 @@ import { type NodeId, NodeKind, type WorkspaceDocument } from "../domain/workspa
 import { createWorkspaceRepository } from "../storage/workspaceRepository"
 import { registerDocumentLaunchHandler } from "./fileLaunch"
 import { openLaunchedDocumentFiles } from "./fileLaunchActions"
+import { readReadingProgress, updateReadingProgress, writeReadingProgress } from "./readingProgress"
 import {
   createItem,
   deleteSelected,
@@ -37,6 +38,7 @@ export type WorkspaceController = {
   readonly screen: Screen
   readonly errorMessage: string | null
   readonly storagePersisted: boolean
+  readonly readingProgress: Readonly<Record<string, number>>
   readonly selectNode: (id: NodeId) => Promise<void>
   readonly selectNodeInTree: (id: NodeId) => Promise<void>
   readonly showBrowser: () => void
@@ -57,11 +59,15 @@ export type WorkspaceController = {
   readonly importWorkspaceFile: (file: File) => Promise<void>
   readonly exportSelectedDocument: () => void
   readonly exportWorkspace: () => Promise<void>
+  readonly setDocumentReadingProgress: (id: string, ratio: number) => void
   readonly clearError: () => void
 }
 
 export function useWorkspaceController(): WorkspaceController {
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState(() => ({
+    ...initialState,
+    readingProgress: readReadingProgress(),
+  }))
   const repository = useMemo(() => createWorkspaceRepository(), [])
 
   useEffect(() => {
@@ -88,6 +94,7 @@ export function useWorkspaceController(): WorkspaceController {
     screen: state.screen,
     errorMessage: state.errorMessage,
     storagePersisted: state.storagePersisted,
+    readingProgress: state.readingProgress,
     selectNode: (id) => selectNode(repository, setState, id),
     selectNodeInTree: async (id) => {
       try {
@@ -176,13 +183,17 @@ export function useWorkspaceController(): WorkspaceController {
       importDocumentFiles({
         repository,
         setState,
-        nodes: state.nodes,
-        selectedId: state.selectedId,
         files,
       }),
     importWorkspaceFile: (file) => importWorkspaceFile(repository, setState, file),
     exportSelectedDocument: () => exportSelectedDocument(selectedNode, state.selectedDocument),
     exportWorkspace: () => exportWorkspace(repository, setState),
+    setDocumentReadingProgress: (id, ratio) =>
+      setState((current) => {
+        const readingProgress = updateReadingProgress(current.readingProgress, id, ratio)
+        writeReadingProgress(readingProgress)
+        return { ...current, readingProgress }
+      }),
     clearError: () => setState((current) => ({ ...current, errorMessage: null })),
   }
 }

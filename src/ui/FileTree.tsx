@@ -1,6 +1,7 @@
 import { ChevronRight, FileText, Folder, FolderInput, Pencil, Trash2, Undo2, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { type AppLanguage, formatEditedTime, translate } from "../app/i18n"
+import { formatReadingProgressPercent } from "../app/readingProgress"
 import type { WorkspaceController } from "../app/workspaceController"
 import { buildTree, TreeSortOrder } from "../domain/tree"
 import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
@@ -26,12 +27,6 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
     managedSelectionCount === 1
       ? (managedSelectedTreeNodes[0]?.name ?? translate(appLanguage, "selectedItem"))
       : itemCountLabel(managedSelectionCount, appLanguage)
-  const deleteSelectionIds =
-    managedSelectionIds.length > 0
-      ? managedSelectionIds
-      : workspace.selectedNode === null
-        ? []
-        : [workspace.selectedNode.id]
   const sortLabel =
     sortOrder === TreeSortOrder.Updated
       ? translate(appLanguage, "latest")
@@ -174,9 +169,9 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
         <button
           className="danger"
           type="button"
-          disabled={!isManaging || deleteSelectionIds.length === 0}
+          disabled={!isManaging || managedSelectionCount === 0}
           onClick={() => {
-            void workspace.deleteNodes(deleteSelectionIds).then(clearManagedSelection)
+            void workspace.deleteNodes(managedSelectionIds).then(clearManagedSelection)
           }}
         >
           <Trash2 size={15} aria-hidden="true" />
@@ -215,18 +210,21 @@ function TreeRow({
   onManageSelectionChange,
 }: TreeRowProps) {
   const [expanded, setExpanded] = useState(true)
-  const isSelected = workspace.selectedNode?.id === node.id
   const isFolder = node.kind === NodeKind.Folder
   const isRootFile = node.kind === NodeKind.File && depth === 0
   const hasChildren = node.children.length > 0
-  const isMoveSelected = managedSelectionIds.includes(node.id)
+  const isManagedSelected = managedSelectionIds.includes(node.id)
+  const readingProgressLabel =
+    node.kind === NodeKind.File
+      ? formatReadingProgressPercent(workspace.readingProgress[node.id])
+      : null
   const padding = `${12 + depth * 18}px`
   const canMoveHere = isChoosingMoveTarget && canUseMoveTarget(node, managedSelectedTreeNodes)
 
   return (
     <div className={treeNodeClassName(node.kind, hasChildren)}>
       <button
-        className={treeRowClassName(isSelected, canMoveHere)}
+        className={treeRowClassName(isManaging && isManagedSelected, canMoveHere)}
         type="button"
         style={{ paddingLeft: padding }}
         aria-expanded={isFolder ? expanded : undefined}
@@ -249,8 +247,8 @@ function TreeRow({
         }}
       >
         {isManaging ? (
-          <span className={moveSelectClassName(isMoveSelected)} aria-hidden="true">
-            {isMoveSelected ? "✓" : ""}
+          <span className={moveSelectClassName(isManagedSelected)} aria-hidden="true">
+            {isManagedSelected ? "✓" : ""}
           </span>
         ) : null}
         {isFolder ? (
@@ -273,7 +271,12 @@ function TreeRow({
         )}
         <span className="tree-row-copy">
           <span className="tree-row-name">{node.name}</span>
-          <span className="tree-row-meta">{formatEditedTime(node.updatedAt, appLanguage)}</span>
+          <span className="tree-row-meta-line">
+            <span className="tree-row-meta">{formatEditedTime(node.updatedAt, appLanguage)}</span>
+            {readingProgressLabel === null ? null : (
+              <span className="tree-row-progress">{readingProgressLabel}</span>
+            )}
+          </span>
         </span>
       </button>
       {node.kind === NodeKind.Folder && expanded && hasChildren ? (

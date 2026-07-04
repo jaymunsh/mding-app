@@ -4,6 +4,7 @@ import {
   lazy,
   type PointerEvent as ReactPointerEvent,
   Suspense,
+  useCallback,
   useRef,
   useState,
 } from "react"
@@ -12,6 +13,7 @@ import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
 import { PreviewErrorBoundary } from "./PreviewRecovery"
+import { useScrollProgress } from "./useScrollProgress"
 
 const MarkdownPreview = lazy(() =>
   import("./MarkdownPreview").then((module) => ({ default: module.MarkdownPreview })),
@@ -56,6 +58,12 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
   const [previewZoomIndex, setPreviewZoomIndex] = useState(DEFAULT_PREVIEW_ZOOM_INDEX)
   const activeBackSwipeRef = useRef<ActiveBackSwipe | null>(null)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+  const handleReadingProgressChange = useCallback(
+    (documentId: string, ratio: number) => {
+      workspace.setDocumentReadingProgress(documentId, ratio)
+    },
+    [workspace],
+  )
 
   if (workspace.selectedNode === null || workspace.selectedNode.kind === NodeKind.Folder) {
     return (
@@ -73,6 +81,8 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
   const canEdit = isEditableDocument(selectedDocument)
   const exportLabel = documentFormat === DocumentFormat.Html ? t("exportHtml") : t("exportMd")
   const previewZoom = PREVIEW_ZOOM_STEPS[previewZoomIndex] ?? 1
+  const selectedDocumentId = workspace.selectedNode.id
+  const readingProgressRatio = workspace.readingProgress[selectedDocumentId] ?? 0
 
   function handlePointerDown(event: ReactPointerEvent<HTMLElement>): void {
     if (event.pointerType !== "touch" || workspace.isEditing) {
@@ -209,10 +219,14 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
         </label>
       ) : (
         <DocumentPreview
+          key={selectedDocumentId}
+          documentId={selectedDocumentId}
           documentFormat={documentFormat}
           appLanguage={appLanguage}
+          readingProgressRatio={readingProgressRatio}
           source={selectedDocument?.markdown ?? ""}
           zoom={previewZoom}
+          onReadingProgressChange={handleReadingProgressChange}
         />
       )}
     </section>
@@ -274,26 +288,52 @@ function PreviewZoomControls({
 }
 
 function DocumentPreview({
+  documentId,
   documentFormat,
   appLanguage,
+  readingProgressRatio,
   source,
   zoom,
+  onReadingProgressChange,
 }: {
+  readonly documentId: string
   readonly documentFormat: DocumentFormat
   readonly appLanguage: AppLanguage
+  readonly readingProgressRatio: number
   readonly source: string
   readonly zoom: number
+  readonly onReadingProgressChange: (documentId: string, ratio: number) => void
 }) {
+  const previewRef = useScrollProgress<HTMLElement>({
+    documentId,
+    enabled: true,
+    initialRatio: readingProgressRatio,
+    onProgressChange: onReadingProgressChange,
+  })
   const markdownZoomStyle = createMarkdownZoomStyle(zoom)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+
+  function handleHtmlAnchorScroll(top: number): void {
+    previewRef.current?.scrollTo({ top, left: 0, behavior: "auto" })
+  }
+
+  function handleHtmlScrollDelta(deltaY: number): void {
+    previewRef.current?.scrollBy({ top: deltaY, left: 0, behavior: "auto" })
+  }
 
   switch (documentFormat) {
     case DocumentFormat.Html:
       return (
-        <article className="html-preview">
+        <article className="html-preview" ref={previewRef}>
           <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`html:${zoom}:${source}`}>
             <Suspense fallback={<p>{t("loadingPreview")}</p>}>
-              <HtmlPreview appLanguage={appLanguage} html={source} zoom={zoom} />
+              <HtmlPreview
+                appLanguage={appLanguage}
+                html={source}
+                zoom={zoom}
+                onAnchorScroll={handleHtmlAnchorScroll}
+                onScrollDelta={handleHtmlScrollDelta}
+              />
             </Suspense>
           </PreviewErrorBoundary>
           {source.trim().length === 0 ? (
@@ -306,7 +346,7 @@ function DocumentPreview({
       )
     case DocumentFormat.Markdown:
       return (
-        <article className="markdown-preview">
+        <article className="markdown-preview" ref={previewRef}>
           <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`markdown:${zoom}:${source}`}>
             <div className="markdown-body" style={markdownZoomStyle}>
               <Suspense fallback={<p>{t("loadingPreview")}</p>}>

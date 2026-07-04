@@ -75,6 +75,7 @@ export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
               <li>{t("helpPreview1")}</li>
               <li>{t("helpPreview2")}</li>
               <li>{t("helpPreview3")}</li>
+              <li>{t("helpPreview4")}</li>
             </ul>
           </section>
           <section className="help-section">
