@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Download, Eye, Pencil, X, ZoomIn, ZoomOut } from "lucide-react"
+import { ArrowLeft, Check, Eye, Pencil, Upload, X, ZoomIn, ZoomOut } from "lucide-react"
 import {
   type CSSProperties,
   lazy,
@@ -189,7 +189,7 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
                 onClick={workspace.exportSelectedDocument}
                 aria-label={exportLabel}
               >
-                <Download size={16} aria-hidden="true" />
+                <Upload size={16} aria-hidden="true" />
                 <span>{exportLabel}</span>
               </button>
               {canEdit ? (
