@@ -163,14 +163,23 @@ mding은 [MIT License](LICENSE)로 공개합니다.
 
 ## 스크린샷
 
-<p align="center">
-  <img src="docs/imgs/img1.png" alt="mding 모바일 작업공간" width="280" />
-</p>
+### 모바일 라이트
 
 <p align="center">
-  <img src="docs/imgs/img2.png" alt="mding 모바일 Markdown 미리보기" width="280" />
+  <img src="docs/imgs/mobile-light-workspace.png" alt="mding 모바일 작업공간 라이트 모드" width="260" />
+  <img src="docs/imgs/mobile-light-markdown.png" alt="mding 모바일 Markdown 상세 라이트 모드" width="260" />
 </p>
 
+### 모바일 다크
+
 <p align="center">
-  <img src="docs/imgs/img3.png" alt="mding 데스크톱 Markdown 미리보기" width="720" />
+  <img src="docs/imgs/mobile-dark-workspace.png" alt="mding 모바일 작업공간 다크 모드" width="260" />
+  <img src="docs/imgs/mobile-dark-markdown.png" alt="mding 모바일 Markdown 상세 다크 모드" width="260" />
+</p>
+
+### 데스크톱
+
+<p align="center">
+  <img src="docs/imgs/desktop-light-markdown.png" alt="mding 데스크톱 Markdown 상세 라이트 모드" width="420" />
+  <img src="docs/imgs/desktop-dark-markdown.png" alt="mding 데스크톱 Markdown 상세 다크 모드" width="420" />
 </p>

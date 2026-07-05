@@ -163,7 +163,23 @@ mding is released under the [MIT License](LICENSE).
 
 ## Screenshots
 
+### Mobile Light
+
 <p align="center">
-  <img src="docs/imgs/img1.png" alt="mding mobile workspace list" width="280" />
-  <img src="docs/imgs/img2.png" alt="mding mobile Markdown detail" width="280" />
+  <img src="docs/imgs/mobile-light-workspace.png" alt="mding mobile workspace in light mode" width="260" />
+  <img src="docs/imgs/mobile-light-markdown.png" alt="mding mobile Markdown detail in light mode" width="260" />
+</p>
+
+### Mobile Dark
+
+<p align="center">
+  <img src="docs/imgs/mobile-dark-workspace.png" alt="mding mobile workspace in dark mode" width="260" />
+  <img src="docs/imgs/mobile-dark-markdown.png" alt="mding mobile Markdown detail in dark mode" width="260" />
+</p>
+
+### Desktop
+
+<p align="center">
+  <img src="docs/imgs/desktop-light-markdown.png" alt="mding desktop Markdown detail in light mode" width="420" />
+  <img src="docs/imgs/desktop-dark-markdown.png" alt="mding desktop Markdown detail in dark mode" width="420" />
 </p>
