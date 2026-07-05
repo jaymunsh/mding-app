@@ -26,6 +26,24 @@ After the first successful online load, the app shell and built assets are cache
 - Support English/Korean UI, light mode, dark mode, and compact mobile layouts.
 - Use a soft ivory light theme and a compact settings popover for theme/language selection.
 
+## Open Source Status
+
+mding is designed to be open source as a small, personal, local-first PWA rather than a hosted notes service. The code is useful as both an app and a reference implementation for people who want a lightweight Markdown workspace without TestFlight, sideloading, accounts, or a native app-store release.
+
+Project boundaries:
+
+- Local-first by default. No server-side document storage.
+- PWA distribution first. Native wrappers are optional future work, not the core product.
+- Portable Markdown files and explicit backups matter more than cloud features.
+- Trusted read-only HTML preview is supported for personal reference files.
+
+For contribution and maintenance details, see:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [Open Source Operations](docs/open-source-operations.md)
+- [오픈소스 운영 가이드](docs/open-source-operations.ko.md)
+
 ## Default Workspace
 
 New local workspaces start with two sample files:
@@ -138,6 +156,10 @@ corepack pnpm qa:visual
 ```
 
 `audit:pwa` and `qa:visual` expect the production preview server to be running at `http://127.0.0.1:4173/`.
+
+## License
+
+mding is released under the [MIT License](LICENSE).
 
 ## Screenshots
 

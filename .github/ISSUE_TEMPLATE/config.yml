@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: mding README
+    url: https://github.com/jaymunsh/mding-app#readme
+    about: Read install, backup, and development notes before filing an issue.

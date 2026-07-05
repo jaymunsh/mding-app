@@ -2,6 +2,15 @@
   "name": "mding",
   "private": true,
   "version": "1.4.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaymunsh/mding-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaymunsh/mding-app/issues"
+  },
+  "homepage": "https://github.com/jaymunsh/mding-app#readme",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
