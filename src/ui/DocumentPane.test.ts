@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { shouldNavigateBackFromEdgeSwipe } from "./DocumentPane"
+import { shouldNavigateBackFromEdgeSwipe } from "./documentGestures"
 
 describe("Document pane edge swipe", () => {
   it("navigates back only for a mobile left-edge horizontal swipe", () => {

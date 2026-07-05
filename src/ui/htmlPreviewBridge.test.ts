@@ -42,6 +42,24 @@ describe("HTML preview bridge", () => {
     expect(script).toContain("window.parent.postMessage")
   })
 
+  it("accepts parent zoom messages without resetting imported document state", () => {
+    const script = createHtmlPreviewBridgeScript("light", 1, 0)
+
+    expect(script).toContain('data.type === "mding:html-preview-zoom"')
+    expect(script).toContain("syncZoom(data.zoom)")
+    expect(script).not.toContain(
+      "document.documentElement.dataset.theme = appTheme\\n    document.documentElement.style.zoom",
+    )
+  })
+
+  it("accepts parent document search messages and reports match counts", () => {
+    const script = createHtmlPreviewBridgeScript("light", 1, 0)
+
+    expect(script).toContain('type: "mding:html-preview-search-result"')
+    expect(script).toContain('data.type === "mding:html-preview-search"')
+    expect(script).toContain("applySearch(data.query, data.activeIndex)")
+  })
+
   it("parses iframe reading progress messages", () => {
     expect(
       parseHtmlReadingProgressMessage({

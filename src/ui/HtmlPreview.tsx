@@ -8,8 +8,11 @@ type HtmlPreviewProps = {
   readonly documentId: string
   readonly html: string
   readonly readingProgressRatio: number
+  readonly searchIndex: number
+  readonly searchQuery: string
   readonly zoom: number
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
+  readonly onSearchResultChange: (count: number, activeIndex: number) => void
 }
 
 type HtmlPreviewState = {
@@ -21,12 +24,16 @@ export function HtmlPreview({
   documentId,
   html,
   readingProgressRatio,
+  searchIndex,
+  searchQuery,
   zoom,
   onReadingProgressChange,
+  onSearchResultChange,
 }: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const latestReadingProgressRef = useRef(readingProgressRatio)
+  const latestZoomRef = useRef(zoom)
   const colorMode = useMermaidColorMode()
   const [preview, setPreview] = useState<HtmlPreviewState>(() => ({
     srcDoc: createLoadingDocument(colorMode, zoom, appLanguage),
@@ -37,6 +44,28 @@ export function HtmlPreview({
   }, [readingProgressRatio])
 
   useEffect(() => {
+    latestZoomRef.current = zoom
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        type: "mding:html-preview-zoom",
+        zoom,
+      },
+      "*",
+    )
+  }, [zoom])
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        activeIndex: searchIndex,
+        query: searchQuery,
+        type: "mding:html-preview-search",
+      },
+      "*",
+    )
+  }, [searchIndex, searchQuery])
+
+  useEffect(() => {
     let cancelled = false
 
     async function buildPreview(): Promise<void> {
@@ -45,7 +74,7 @@ export function HtmlPreview({
           html,
           colorMode,
           idPrefix,
-          zoom,
+          latestZoomRef.current,
           latestReadingProgressRef.current,
         )
         if (!cancelled) {
@@ -54,7 +83,12 @@ export function HtmlPreview({
       } catch (error) {
         if (!cancelled) {
           setPreview({
-            srcDoc: createHtmlPreviewErrorDocument(colorMode, zoom, appLanguage, error),
+            srcDoc: createHtmlPreviewErrorDocument(
+              colorMode,
+              latestZoomRef.current,
+              appLanguage,
+              error,
+            ),
           })
         }
       }
@@ -65,7 +99,7 @@ export function HtmlPreview({
     return () => {
       cancelled = true
     }
-  }, [appLanguage, colorMode, html, idPrefix, zoom])
+  }, [appLanguage, colorMode, html, idPrefix])
 
   useEffect(() => {
     function handleMessage(event: MessageEvent): void {
@@ -75,6 +109,11 @@ export function HtmlPreview({
       const ratio = parseHtmlReadingProgressMessage(event.data)
       if (ratio !== null) {
         onReadingProgressChange(documentId, ratio)
+        return
+      }
+      const searchResult = parseHtmlSearchResultMessage(event.data)
+      if (searchResult !== null) {
+        onSearchResultChange(searchResult.count, searchResult.activeIndex)
       }
     }
 
@@ -86,7 +125,7 @@ export function HtmlPreview({
         onReadingProgressChange(documentId, finalRatio)
       }
     }
-  }, [documentId, onReadingProgressChange])
+  }, [documentId, onReadingProgressChange, onSearchResultChange])
 
   return (
     <iframe
@@ -107,6 +146,34 @@ export function parseHtmlReadingProgressMessage(data: unknown): number | null {
     return null
   }
   return clampRatio(data.ratio)
+}
+
+type HtmlSearchResult = {
+  readonly activeIndex: number
+  readonly count: number
+}
+
+function parseHtmlSearchResultMessage(data: unknown): HtmlSearchResult | null {
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("type" in data) ||
+    !("count" in data) ||
+    !("activeIndex" in data)
+  ) {
+    return null
+  }
+  if (
+    data.type !== "mding:html-preview-search-result" ||
+    typeof data.count !== "number" ||
+    typeof data.activeIndex !== "number"
+  ) {
+    return null
+  }
+  return {
+    activeIndex: data.activeIndex,
+    count: data.count,
+  }
 }
 
 function readIframeReadingProgress(iframe: HTMLIFrameElement | null): number | null {
@@ -273,6 +340,17 @@ function previewStyle(colorMode: MermaidColorMode): string {
     .mermaid-diagram svg {
       max-width: 100%;
       height: auto;
+    }
+
+    .document-search-match {
+      color: inherit;
+      background: ${isDark ? "rgba(231, 165, 72, 0.34)" : "rgba(163, 91, 0, 0.24)"};
+      border-radius: 4px;
+    }
+
+    .document-search-match.active {
+      color: ${isDark ? "#111210" : "#ffffff"};
+      background: ${isDark ? "#60b49d" : "#2f6f5e"};
     }
   `
 }

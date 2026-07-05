@@ -179,6 +179,7 @@ button.danger:disabled,
 .brand {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: var(--space-3);
   min-width: 152px;
 }
@@ -223,6 +224,17 @@ img.brand-mark {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.toolbar-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+}
+
+.topbar-controls {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .document-actions {
@@ -368,6 +380,47 @@ img.brand-mark {
   white-space: nowrap;
 }
 
+.document-icon-button {
+  display: inline-grid;
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  place-items: center;
+}
+
+.document-icon-button.selected {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+.document-tools-anchor {
+  position: relative;
+}
+
+.document-tools-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 70;
+  display: grid;
+  width: min(188px, calc(100vw - var(--space-8)));
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.document-tools-menu > button {
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  font-size: 13px;
+}
+
 .preview-zoom-controls {
   display: inline-grid;
   grid-template-columns: 32px 52px 32px;
@@ -408,6 +461,61 @@ img.brand-mark {
 .preview-zoom-controls button:disabled {
   color: var(--text-tertiary);
   cursor: default;
+}
+
+.tool-preview-zoom-controls {
+  width: 100%;
+  grid-template-columns: 30px minmax(48px, 1fr) 30px;
+  min-height: 34px;
+}
+
+.document-search-bar {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 34px 34px 34px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-secondary);
+}
+
+.document-search-bar input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--surface-inset);
+  font: inherit;
+}
+
+.document-search-count {
+  min-width: 48px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.document-search-bar button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.document-search-match {
+  color: inherit;
+  background: color-mix(in srgb, var(--status-warning) 36%, transparent);
+  border-radius: 4px;
+}
+
+.document-search-match.active {
+  color: var(--surface-secondary);
+  background: var(--accent-primary);
 }
 
 .app-alert {
@@ -912,7 +1020,7 @@ img.brand-mark {
 .document-pane {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -998,6 +1106,7 @@ img.brand-mark {
 }
 
 .editor-wrap {
+  grid-row: 3;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
@@ -1025,6 +1134,7 @@ img.brand-mark {
 
 .markdown-preview,
 .html-preview {
+  grid-row: 3;
   min-height: 0;
   overflow: auto;
   padding: var(--space-5);
@@ -1332,6 +1442,26 @@ details.markdown-callout > summary::marker {
   pointer-events: none;
 }
 
+@media (max-width: 1240px) {
+  .topbar {
+    gap: var(--space-3);
+  }
+
+  .toolbar-group {
+    justify-content: flex-end;
+  }
+
+  .toolbar-button {
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+  }
+
+  .toolbar-button span {
+    display: none;
+  }
+}
+
 @media (max-width: 759px) {
   body {
     overflow: hidden;
@@ -1434,8 +1564,27 @@ details.markdown-callout > summary::marker {
     display: none;
   }
 
+  .document-tools-menu button span {
+    display: inline;
+  }
+
+  .document-tools-menu {
+    width: min(172px, calc(100vw - var(--space-8)));
+    gap: var(--space-1);
+  }
+
+  .document-tools-menu > button {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
   .preview-zoom-controls {
     grid-template-columns: 30px 46px 30px;
+    min-height: 32px;
+  }
+
+  .tool-preview-zoom-controls {
+    grid-template-columns: 28px minmax(46px, 1fr) 28px;
     min-height: 32px;
   }
 

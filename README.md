@@ -164,13 +164,6 @@ mding is released under the [MIT License](LICENSE).
 ## Screenshots
 
 <p align="center">
-  <img src="docs/imgs/img1.png" alt="mding mobile workspace" width="280" />
-</p>
-
-<p align="center">
-  <img src="docs/imgs/img2.png" alt="mding mobile Markdown preview" width="280" />
-</p>
-
-<p align="center">
-  <img src="docs/imgs/img3.png" alt="mding desktop Markdown preview" width="720" />
+  <img src="docs/imgs/img1.png" alt="mding mobile workspace list" width="280" />
+  <img src="docs/imgs/img2.png" alt="mding mobile Markdown detail" width="280" />
 </p>
