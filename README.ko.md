@@ -99,6 +99,28 @@ Notion 데이터베이스나 Obsidian의 모든 플러그인을 복제하는 방
 - `assets/` 폴더를 포함한 선택적 로컬 이미지 첨부 관리.
 - File System Access API를 지원하는 브라우저에서 선택적 폴더 동기화.
 
+## 배포 전 주의사항
+
+### 데이터 보존
+
+mding은 작업공간 파일과 읽기 진행도를 IndexedDB, local storage, 서비스 워커 캐시 같은 브라우저 관리 저장소에 저장합니다. 이 데이터는 설치된 앱 또는 브라우저 프로필에 로컬로 남고, 보통 앱 재실행과 오프라인 사용 후에도 유지됩니다. 다만 사용자가 직접 소유하는 디스크 폴더와는 다릅니다. 사용자가 사이트 데이터를 지우거나, 설치된 웹 앱을 삭제하거나, 브라우저가 저장 공간 압박 또는 자체 저장소 정책에 따라 데이터를 정리하면 사라질 수 있습니다.
+
+Apple 플랫폼에서 말하는 무료 개발자 사이드로드 7일 제한은 네이티브 앱 서명 문제이며, PWA 규칙이 아닙니다. Safari/WebKit에는 사용자 상호작용이 없는 일부 script-writable 웹사이트 저장소에 대한 7일 ITP 제한이 있지만, 홈 화면에 추가한 웹 앱의 first-party domain은 이 특정 제한의 예외입니다.
+
+중요한 문서는 명시적인 백업이 가장 안전합니다. 앱 데이터 삭제, 기기 변경, OS 재설치, 큰 변경 전에는 `Backup`으로 전체 작업공간 zip을 내려받는 습관을 권장합니다.
+
+### 호스팅 링크가 사라지는 경우
+
+mding은 서비스 워커를 통해 빌드된 HTML, CSS, JavaScript, 아이콘, 렌더러 청크를 미리 캐시합니다. 한 번 온라인에서 정상 로드된 뒤에는 브라우저가 캐시와 로컬 데이터를 유지하는 동안 설치된 앱이 오프라인에서도 계속 열리고 동작할 수 있습니다.
+
+하지만 호스팅 URL이 사라지면 새 설치는 불가능하고, 삭제한 앱을 그 링크로 다시 설치할 수도 없으며, 이후 업데이트 확인도 새 서비스 워커나 새 자산 번들을 가져올 수 없습니다. 기존 설치본은 캐시로 계속 동작할 수 있지만, 배포용 호스트도 앱 배포 경로의 일부로 관리해야 합니다.
+
+### 업데이트 신뢰와 브라우저 샌드박스
+
+PWA 업데이트는 앱스토어 심사를 거치는 릴리스가 아니라 웹 배포입니다. 이 프로젝트는 서비스 워커 자동 업데이트를 사용하므로, 새 번들이 배포되면 설치된 클라이언트가 브라우저 업데이트 확인 시점에 새 버전을 받을 수 있습니다.
+
+따라서 사용자는 신뢰할 수 있는 출처에서만 mding을 설치해야 합니다. 악의적이거나 탈취된 업데이트라도 브라우저 샌드박스 안에서 실행되므로, 브라우저가 허용하지 않은 시스템 파일을 임의로 수정하기는 어렵습니다. 하지만 앱 origin 안에서 실행되는 코드는 mding의 로컬 작업공간 데이터를 읽거나, 수정하거나, 삭제하거나, 네트워크로 전송할 수 있습니다. 백업은 실수로 인한 데이터 손실을 줄여주지만, 배포 origin에 대한 신뢰를 대체하지는 못합니다.
+
 ## 설치와 업데이트
 
 `dist/` 빌드 결과물을 Vercel, Netlify, Cloudflare Pages, GitHub Pages 같은 HTTPS 정적 호스트에 배포합니다. 사용자에게는 이 HTTPS URL을 설치 링크로 공유하면 됩니다.
@@ -121,8 +143,12 @@ Notion 데이터베이스나 Obsidian의 모든 플러그인을 복제하는 방
 
 참고:
 
+- [MDN: Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
 - [MDN: Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
+- [MDN: Using service workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 - [web.dev: Service worker updates](https://web.dev/learn/pwa/update)
+- [web.dev: Persistent storage](https://web.dev/articles/persistent-storage)
+- [WebKit: Tracking Prevention](https://webkit.org/tracking-prevention/)
 - [Apple Support: iPhone에서 웹 사이트를 앱처럼 열기](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios)
 - [Apple Support: Mac에서 Safari 웹 앱 사용하기](https://support.apple.com/ko-kr/104996)
 

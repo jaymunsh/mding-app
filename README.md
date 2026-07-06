@@ -99,6 +99,28 @@ Future backup options worth considering:
 - Optional local image attachment management with an `assets/` folder.
 - Optional file-system folder sync on browsers that support the File System Access API.
 
+## Deployment Notes
+
+### Data Retention
+
+mding stores workspace files and reading progress in browser-managed storage such as IndexedDB, local storage, and service-worker caches. This is local to the installed app/browser profile and normally survives app restarts and offline use, but it is not the same as a user-owned folder on disk. Browser data can be removed by the user, by clearing site data, by uninstalling the installed web app, or by browser storage policy under storage pressure.
+
+On Apple platforms, the 7-day free-developer sideload limit is a native-app signing issue, not a PWA rule. Safari/WebKit also has a 7-day Intelligent Tracking Prevention cap for some script-writable website storage after no user interaction, but Home Screen web apps' first-party domains are exempt from that specific cap.
+
+For important notes, the safest habit is still explicit backup: use `Backup` to download a zip of the workspace before deleting app data, switching devices, reinstalling the OS, or making large changes.
+
+### If The Hosted Link Goes Away
+
+mding precaches the built HTML, CSS, JavaScript, icons, and renderer chunks through its service worker. After a successful online load, an already installed app can keep opening and working offline as long as the browser keeps those cached assets and local data.
+
+If the hosting URL disappears, new installs will not work, deleted apps cannot be reinstalled from that link, and future update checks cannot fetch a new service worker or new asset bundle. Existing installs may continue to run from cache, but the host should be treated as part of the distribution path.
+
+### Update Trust And Browser Sandbox
+
+PWA updates are web deployments, not app-store-reviewed releases. This project uses automatic service-worker updates, so a newly deployed bundle can be downloaded by installed clients when the browser checks for updates.
+
+That means users should install mding only from a source they trust. A malicious or compromised update would still run inside the browser sandbox, so it should not be able to modify arbitrary system files without browser-granted permissions. However, code running on the app's origin could read, modify, delete, or exfiltrate mding's own local workspace data. Backups protect against accidental data loss, but they do not replace trusting the deployed origin.
+
 ## Install And Updates
 
 Deploy the built `dist/` output to a static HTTPS host such as Vercel, Netlify, Cloudflare Pages, or GitHub Pages. Share that HTTPS URL as the install link.
@@ -121,8 +143,12 @@ Updates:
 
 References:
 
+- [MDN: Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
 - [MDN: Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
+- [MDN: Using service workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 - [web.dev: Service worker updates](https://web.dev/learn/pwa/update)
+- [web.dev: Persistent storage](https://web.dev/articles/persistent-storage)
+- [WebKit: Tracking Prevention](https://webkit.org/tracking-prevention/)
 - [Apple Support: Turn a website into an app in Safari on iPhone](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios)
 - [Apple Support: Use Safari web apps on Mac](https://support.apple.com/en-us/104996)
 
