@@ -1,62 +1,159 @@
-import { ChevronRight, FileText, Folder, FolderInput, Pencil, Trash2, Undo2, X } from "lucide-react"
-import { useMemo, useState } from "react"
-import { type AppLanguage, formatEditedTime, translate } from "../app/i18n"
-import { formatReadingProgressPercent } from "../app/readingProgress"
+import { Check, FolderInput, PanelLeftClose, Pencil, Trash2, Undo2, X } from "lucide-react"
+import { type DragEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type AppLanguage, translate } from "../app/i18n"
 import type { WorkspaceController } from "../app/workspaceController"
+import { assertNever } from "../domain/result"
 import { buildTree, TreeSortOrder } from "../domain/tree"
-import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
-import { canUseMoveTarget, findTreeNode, nextSortOrder } from "./fileTreeModel"
+import type { NodeId, TreeNode } from "../domain/workspace"
+import {
+  type DragTargetId,
+  FileTreeRow,
+  type FileTreeRowContext,
+  INTERNAL_DRAG_TYPE,
+  type MoveDestination,
+  ROOT_DRAG_TARGET,
+} from "./FileTreeRow"
+import { buildPinnedShortcuts, findTreeNode, nextSortOrder } from "./fileTreeModel"
 
 type FileTreeProps = {
   readonly appLanguage: AppLanguage
   readonly workspace: WorkspaceController
+  readonly onCollapseSidebar: () => void
 }
 
-export function FileTree({ appLanguage, workspace }: FileTreeProps) {
+export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTreeProps) {
   const [renameText, setRenameText] = useState("")
   const [sortOrder, setSortOrder] = useState<TreeSortOrder>(TreeSortOrder.Updated)
   const [isManaging, setIsManaging] = useState(false)
   const [isChoosingMoveTarget, setIsChoosingMoveTarget] = useState(false)
   const [managedSelectionIds, setManagedSelectionIds] = useState<readonly NodeId[]>([])
+  const [draggedNodeIds, setDraggedNodeIds] = useState<readonly NodeId[]>([])
+  const [dragTargetId, setDragTargetId] = useState<DragTargetId>(null)
+  const [moveToast, setMoveToast] = useState<MoveDestination | null>(null)
+  const moveToastTimerRef = useRef<number | null>(null)
   const tree = useMemo(() => buildTree(workspace.nodes, sortOrder), [workspace.nodes, sortOrder])
-  const managedSelectedTreeNodes = managedSelectionIds
-    .map((id) => findTreeNode(tree, id))
-    .filter((node) => node !== null)
+  const pinnedShortcuts = useMemo(
+    () => buildPinnedShortcuts(workspace.nodes, sortOrder),
+    [workspace.nodes, sortOrder],
+  )
+  const managedSelectedTreeNodes = findTreeNodes(tree, managedSelectionIds)
+  const draggedTreeNodes = findTreeNodes(tree, draggedNodeIds)
+  const canDropToRoot = canMoveToRoot(draggedNodeIds, draggedTreeNodes)
   const managedSelectionCount = managedSelectedTreeNodes.length
-  const moveSelectionLabel =
-    managedSelectionCount === 1
-      ? (managedSelectedTreeNodes[0]?.name ?? translate(appLanguage, "selectedItem"))
-      : itemCountLabel(managedSelectionCount, appLanguage)
   const sortLabel =
     sortOrder === TreeSortOrder.Updated
       ? translate(appLanguage, "latest")
       : translate(appLanguage, "name")
 
-  function toggleManageMode(): void {
-    if (isManaging) {
-      setRenameText("")
-      setManagedSelectionIds([])
-    }
-    setIsChoosingMoveTarget(false)
-    setIsManaging((current) => !current)
-  }
+  useEffect(
+    () => () => {
+      if (moveToastTimerRef.current !== null) {
+        window.clearTimeout(moveToastTimerRef.current)
+      }
+    },
+    [],
+  )
 
-  function toggleManagedSelection(id: NodeId): void {
-    setManagedSelectionIds((current) =>
-      current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id],
-    )
-  }
-
-  function clearManagedSelection(): void {
-    setRenameText("")
-    setManagedSelectionIds([])
-  }
-
-  function resetMoveMode(): void {
-    setIsChoosingMoveTarget(false)
+  function resetManageMode(): void {
     setIsManaging(false)
+    setIsChoosingMoveTarget(false)
     setRenameText("")
     setManagedSelectionIds([])
+  }
+
+  function resetDrag(): void {
+    setDraggedNodeIds([])
+    setDragTargetId(null)
+  }
+
+  function showMoveSuccess(destination: MoveDestination): void {
+    if (moveToastTimerRef.current !== null) {
+      window.clearTimeout(moveToastTimerRef.current)
+    }
+    setMoveToast(destination)
+    moveToastTimerRef.current = window.setTimeout(() => {
+      setMoveToast(null)
+      moveToastTimerRef.current = null
+    }, 2400)
+  }
+
+  function handleRootDrop(event: DragEvent<HTMLDivElement>): void {
+    if (!isInternalDrag(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    if (!canDropToRoot) {
+      resetDrag()
+      return
+    }
+    void workspace.moveNodesToRoot(draggedNodeIds).then((outcome) => {
+      if (outcome.kind === "success") {
+        showMoveSuccess({ kind: "root" })
+      }
+      resetDrag()
+    })
+  }
+
+  function handleRootDragEnter(event: DragEvent<HTMLDivElement>): void {
+    if (!isInternalDrag(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    setDragTargetId(canDropToRoot ? ROOT_DRAG_TARGET : null)
+  }
+
+  function handleRootDragOver(event: DragEvent<HTMLDivElement>): void {
+    if (!isInternalDrag(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = canDropToRoot ? "move" : "none"
+  }
+
+  function handleTreeDragEnter(event: DragEvent<HTMLDivElement>): void {
+    if (!isInternalDrag(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    setDragTargetId(null)
+  }
+
+  function handleTreeDrop(event: DragEvent<HTMLDivElement>): void {
+    if (!isInternalDrag(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    resetDrag()
+  }
+
+  const rowContext: FileTreeRowContext = {
+    appLanguage,
+    workspace,
+    isManaging,
+    isChoosingMoveTarget,
+    managedSelectionIds,
+    managedSelectedTreeNodes,
+    draggedNodeIds,
+    draggedTreeNodes,
+    dragTargetId,
+    onMoveSuccess: showMoveSuccess,
+    onToggleManagedSelection: (id) =>
+      setManagedSelectionIds((current) =>
+        current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id],
+      ),
+    onMoveDone: resetManageMode,
+    onManageSelectionChange: () => setRenameText(""),
+    onTogglePin: (id, pinned) => {
+      void workspace.setFilePinned?.(id, pinned)
+    },
+    onDragStart: setDraggedNodeIds,
+    onDragEnd: resetDrag,
+    onDragTargetChange: setDragTargetId,
   }
 
   return (
@@ -76,28 +173,79 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
         </div>
         <div className="panel-heading-side">
           <span>{itemCountLabel(workspace.nodes.length, appLanguage)}</span>
+          <button
+            className="sidebar-collapse-button"
+            type="button"
+            onClick={onCollapseSidebar}
+            aria-label={translate(appLanguage, "collapseSidebar")}
+          >
+            <PanelLeftClose size={15} aria-hidden="true" />
+          </button>
         </div>
       </div>
+
       {tree.length === 0 ? (
         <div className="empty-state">{translate(appLanguage, "createMarkdownStart")}</div>
       ) : (
-        <div className="tree-list">
-          {tree.map((node) => (
-            <TreeRow
-              key={node.id}
-              node={node}
-              depth={0}
-              appLanguage={appLanguage}
-              workspace={workspace}
-              isManaging={isManaging}
-              isChoosingMoveTarget={isChoosingMoveTarget}
-              managedSelectionIds={managedSelectionIds}
-              managedSelectedTreeNodes={managedSelectedTreeNodes}
-              onToggleManagedSelection={toggleManagedSelection}
-              onMoveDone={resetMoveMode}
-              onManageSelectionChange={() => setRenameText("")}
-            />
-          ))}
+        <div
+          role="tree"
+          aria-label={translate(appLanguage, "workspaceFiles")}
+          className={dragTargetId === ROOT_DRAG_TARGET ? "tree-list root-drag-target" : "tree-list"}
+          onDragEnter={handleTreeDragEnter}
+          onDrop={handleTreeDrop}
+        >
+          {draggedNodeIds.length > 0 && canDropToRoot ? (
+            <section
+              className={
+                dragTargetId === ROOT_DRAG_TARGET
+                  ? "tree-root-drop-target root-drag-target"
+                  : "tree-root-drop-target"
+              }
+              aria-label={translate(appLanguage, "moveToRoot")}
+              onDragEnter={handleRootDragEnter}
+              onDragOver={handleRootDragOver}
+              onDragLeave={(event) => {
+                if (isInternalDrag(event)) {
+                  event.stopPropagation()
+                  setDragTargetId(null)
+                }
+              }}
+              onDrop={handleRootDrop}
+            >
+              <span className="tree-drop-target-label">{translate(appLanguage, "moveToRoot")}</span>
+            </section>
+          ) : null}
+          {pinnedShortcuts.length > 0 ? (
+            <section
+              className="tree-section pinned-section"
+              aria-labelledby="pinned-section-heading"
+            >
+              <h2 id="pinned-section-heading" className="tree-section-heading">
+                {translate(appLanguage, "pinned")}
+              </h2>
+              {pinnedShortcuts.map((node) => (
+                <FileTreeRow
+                  key={`pinned-${node.id}`}
+                  node={node}
+                  depth={0}
+                  isShortcut
+                  context={rowContext}
+                />
+              ))}
+            </section>
+          ) : null}
+          <section className="tree-section workspace-tree-section">
+            {tree.map((node) => (
+              <FileTreeRow key={node.id} node={node} depth={0} context={rowContext} />
+            ))}
+          </section>
+        </div>
+      )}
+
+      {moveToast === null ? null : (
+        <div className="undo-toast move-success-toast" role="status" aria-live="polite">
+          <Check size={15} aria-hidden="true" />
+          <span>{moveFeedbackLabel(appLanguage, moveToast)}</span>
         </div>
       )}
 
@@ -106,7 +254,11 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
           <button
             type="button"
             onClick={() => {
-              void workspace.moveNodesToRoot(managedSelectionIds).then(resetMoveMode)
+              void workspace.moveNodesToRoot(managedSelectionIds).then((outcome) => {
+                if (outcome.kind === "success") {
+                  resetManageMode()
+                }
+              })
             }}
           >
             <Undo2 size={15} aria-hidden="true" />
@@ -120,17 +272,10 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
       ) : null}
 
       {isChoosingMoveTarget ? (
-        <div className="tree-status">
-          {translate(appLanguage, "move")} {moveSelectionLabel}:{" "}
-          {translate(appLanguage, "moveChooseFolderSuffix")}
-        </div>
-      ) : isManaging && managedSelectionCount > 0 ? (
-        <div className="tree-status">
-          {selectedForMoveLabel(managedSelectionCount, appLanguage)}
-        </div>
+        <div className="tree-status">{translate(appLanguage, "moveChooseFolderSuffix")}</div>
       ) : null}
 
-      {isManaging ? (
+      {isManaging && managedSelectionCount === 1 ? (
         <form
           className="rename-form"
           onSubmit={(event) => {
@@ -153,174 +298,48 @@ export function FileTree({ appLanguage, workspace }: FileTreeProps) {
         </form>
       ) : null}
 
-      <div className="tree-actions">
-        <button type="button" className={isManaging ? "selected" : ""} onClick={toggleManageMode}>
-          <FolderInput size={15} aria-hidden="true" />
-          {isManaging ? translate(appLanguage, "done") : translate(appLanguage, "manage")}
-        </button>
-        <button
-          type="button"
-          disabled={!isManaging || managedSelectionCount === 0}
-          onClick={() => setIsChoosingMoveTarget(true)}
-        >
-          <Undo2 size={15} aria-hidden="true" />
-          {translate(appLanguage, "move")}
-        </button>
-        <button
-          className="danger"
-          type="button"
-          disabled={!isManaging || managedSelectionCount === 0}
-          onClick={() => {
-            void workspace.deleteNodes(managedSelectionIds).then(clearManagedSelection)
-          }}
-        >
-          <Trash2 size={15} aria-hidden="true" />
-          {translate(appLanguage, "delete")}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-type TreeRowProps = {
-  readonly node: TreeNode
-  readonly depth: number
-  readonly appLanguage: AppLanguage
-  readonly workspace: WorkspaceController
-  readonly isManaging: boolean
-  readonly isChoosingMoveTarget: boolean
-  readonly managedSelectionIds: readonly NodeId[]
-  readonly managedSelectedTreeNodes: readonly TreeNode[]
-  readonly onToggleManagedSelection: (id: NodeId) => void
-  readonly onMoveDone: () => void
-  readonly onManageSelectionChange: () => void
-}
-
-function TreeRow({
-  node,
-  depth,
-  appLanguage,
-  workspace,
-  isManaging,
-  isChoosingMoveTarget,
-  managedSelectionIds,
-  managedSelectedTreeNodes,
-  onToggleManagedSelection,
-  onMoveDone,
-  onManageSelectionChange,
-}: TreeRowProps) {
-  const [expanded, setExpanded] = useState(true)
-  const isFolder = node.kind === NodeKind.Folder
-  const isRootFile = node.kind === NodeKind.File && depth === 0
-  const hasChildren = node.children.length > 0
-  const isManagedSelected = managedSelectionIds.includes(node.id)
-  const readingProgressLabel =
-    node.kind === NodeKind.File
-      ? formatReadingProgressPercent(workspace.readingProgress[node.id])
-      : null
-  const padding = `${12 + depth * 18}px`
-  const canMoveHere = isChoosingMoveTarget && canUseMoveTarget(node, managedSelectedTreeNodes)
-
-  return (
-    <div className={treeNodeClassName(node.kind, hasChildren)}>
-      <button
-        className={treeRowClassName(isManaging && isManagedSelected, canMoveHere)}
-        type="button"
-        style={{ paddingLeft: padding }}
-        aria-expanded={isFolder ? expanded : undefined}
-        disabled={isChoosingMoveTarget && !canMoveHere}
-        onClick={() => {
-          if (isChoosingMoveTarget) {
-            void workspace.moveNodesToFolder(managedSelectionIds, node.id).then(onMoveDone)
-            return
-          }
-          if (isFolder) {
-            setExpanded((value) => !value)
-          }
-          if (isManaging) {
-            onManageSelectionChange()
-            onToggleManagedSelection(node.id)
-            void workspace.selectNodeInTree(node.id)
-            return
-          }
-          void workspace.selectNode(node.id)
-        }}
-      >
-        {isManaging ? (
-          <span className={moveSelectClassName(isManagedSelected)} aria-hidden="true">
-            {isManagedSelected ? "✓" : ""}
+      {isManaging ? (
+        <div className="manage-context-bar">
+          <span role="status">
+            {managedSelectionCount}
+            {appLanguage === "ko" ? "" : " "}
+            {translate(appLanguage, "selectedCount")}
           </span>
-        ) : null}
-        {isFolder ? (
-          <ChevronRight
-            className={expanded ? "disclosure open" : "disclosure"}
-            size={15}
-            aria-hidden="true"
-          />
-        ) : isRootFile ? (
-          <span className="root-marker" aria-hidden="true">
-            √
-          </span>
-        ) : (
-          <span className="disclosure" />
-        )}
-        {isFolder ? (
-          <Folder size={16} aria-hidden="true" />
-        ) : (
-          <FileText size={16} aria-hidden="true" />
-        )}
-        <span className="tree-row-copy">
-          <span className="tree-row-name">{node.name}</span>
-          <span className="tree-row-meta-line">
-            <span className="tree-row-meta">{formatEditedTime(node.updatedAt, appLanguage)}</span>
-            {readingProgressLabel === null ? null : (
-              <span className="tree-row-progress">{readingProgressLabel}</span>
-            )}
-          </span>
-        </span>
-      </button>
-      {node.kind === NodeKind.Folder && expanded && hasChildren ? (
-        <div className="tree-children">
-          {node.children.map((child) => (
-            <TreeRow
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              appLanguage={appLanguage}
-              workspace={workspace}
-              isManaging={isManaging}
-              isChoosingMoveTarget={isChoosingMoveTarget}
-              managedSelectionIds={managedSelectionIds}
-              managedSelectedTreeNodes={managedSelectedTreeNodes}
-              onToggleManagedSelection={onToggleManagedSelection}
-              onMoveDone={onMoveDone}
-              onManageSelectionChange={onManageSelectionChange}
-            />
-          ))}
+          <button
+            type="button"
+            disabled={managedSelectionCount === 0}
+            onClick={() => setIsChoosingMoveTarget(true)}
+            aria-label={translate(appLanguage, "move")}
+          >
+            <Undo2 size={15} aria-hidden="true" />
+          </button>
+          <button
+            className="danger"
+            type="button"
+            disabled={managedSelectionCount === 0}
+            onClick={() => void workspace.deleteNodes(managedSelectionIds).then(resetManageMode)}
+            aria-label={translate(appLanguage, "delete")}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={resetManageMode}>
+            {translate(appLanguage, "done")}
+          </button>
         </div>
-      ) : null}
+      ) : (
+        <div className="tree-actions tree-actions-idle">
+          <button type="button" onClick={() => setIsManaging(true)}>
+            <FolderInput size={15} aria-hidden="true" />
+            {translate(appLanguage, "manage")}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
-function treeNodeClassName(kind: NodeKind, hasChildren: boolean): string {
-  return [
-    "tree-node",
-    kind === NodeKind.Folder ? "folder-node" : "",
-    hasChildren ? "has-children" : "",
-  ]
-    .filter(Boolean)
-    .join(" ")
-}
-
-function treeRowClassName(isSelected: boolean, canMoveHere: boolean): string {
-  return ["tree-row", isSelected ? "selected" : "", canMoveHere ? "move-target" : ""]
-    .filter(Boolean)
-    .join(" ")
-}
-
-function moveSelectClassName(isSelected: boolean): string {
-  return ["move-select-indicator", isSelected ? "checked" : ""].filter(Boolean).join(" ")
+function findTreeNodes(tree: readonly TreeNode[], ids: readonly NodeId[]): readonly TreeNode[] {
+  return ids.map((id) => findTreeNode(tree, id)).filter((node) => node !== null)
 }
 
 function itemCountLabel(count: number, language: AppLanguage): string {
@@ -329,8 +348,23 @@ function itemCountLabel(count: number, language: AppLanguage): string {
     : `${count} ${translate(language, "items")}`
 }
 
-function selectedForMoveLabel(count: number, language: AppLanguage): string {
-  return language === "ko"
-    ? `${count}${translate(language, "selectedForMove")}`
-    : `${count} ${translate(language, "selectedForMove")}`
+function canMoveToRoot(ids: readonly NodeId[], nodes: readonly TreeNode[]): boolean {
+  return (
+    ids.length > 0 && ids.length === nodes.length && nodes.every((node) => node.parentId !== null)
+  )
+}
+
+function isInternalDrag(event: DragEvent<HTMLElement>): boolean {
+  return event.dataTransfer.types.includes(INTERNAL_DRAG_TYPE)
+}
+
+function moveFeedbackLabel(language: AppLanguage, destination: MoveDestination): string {
+  switch (destination.kind) {
+    case "root":
+      return translate(language, "movedToRoot")
+    case "folder":
+      return `${translate(language, "movedToFolder")}: ${destination.name}`
+    default:
+      return assertNever(destination)
+  }
 }

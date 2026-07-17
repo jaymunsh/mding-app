@@ -13,6 +13,7 @@ export function createHtmlPreviewBridgeScript(
   var restoreFrameCount = 45
   var progressSaveDelayMs = 900
   var progressTimer = 0
+  var lastScrollTop = window.scrollY
   var searchMatches = []
 
   function syncTheme() {
@@ -80,6 +81,17 @@ export function createHtmlPreviewBridgeScript(
       progressTimer = 0
       postReadingProgress()
     }, progressSaveDelayMs)
+  }
+
+  function postScrollDirection() {
+    var nextScrollTop = window.scrollY
+    var delta = nextScrollTop - lastScrollTop
+    if (nextScrollTop <= 8 || delta < -12) {
+      window.parent.postMessage({ type: "mding:html-scroll-direction", direction: "up" }, "*")
+    } else if (delta > 12 && nextScrollTop > 48) {
+      window.parent.postMessage({ type: "mding:html-scroll-direction", direction: "down" }, "*")
+    }
+    lastScrollTop = nextScrollTop
   }
 
   function restoreReadingProgress() {
@@ -248,7 +260,10 @@ export function createHtmlPreviewBridgeScript(
   syncTheme()
   syncZoom(previewZoom)
   restoreReadingProgress()
-  window.addEventListener("scroll", scheduleReadingProgress, { passive: true })
+  window.addEventListener("scroll", function () {
+    scheduleReadingProgress()
+    postScrollDirection()
+  }, { passive: true })
   window.addEventListener("pagehide", postReadingProgress)
   window.addEventListener("beforeunload", postReadingProgress)
   window.addEventListener("message", function (event) {

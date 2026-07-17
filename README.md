@@ -18,7 +18,10 @@ After the first successful online load, the app shell and built assets are cache
 ## What It Does
 
 - Create, rename, delete, and organize Markdown files and folders in an app-local workspace.
+- Pin Markdown files as shortcuts while keeping their original folder location.
+- Move files by multi-select or desktop drag and drop, with restore support after deletion.
 - Preview Markdown, switch to source editing, and save locally.
+- Use focused reading for Markdown and HTML previews on desktop and mobile.
 - Import `.md`, `.markdown`, `.html`, and `.htm` files into the workspace.
 - Export the current document file or the whole workspace backup.
 - Run offline after installation through the browser PWA cache.
@@ -41,6 +44,7 @@ For contribution and maintenance details, see:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
+- [CHANGELOG.md](CHANGELOG.md)
 - [Open Source Operations](docs/open-source-operations.md)
 - [오픈소스 운영 가이드](docs/open-source-operations.ko.md)
 

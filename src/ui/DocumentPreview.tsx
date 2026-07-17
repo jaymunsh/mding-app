@@ -23,6 +23,7 @@ type DocumentPreviewProps = {
   readonly documentId: string
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
   readonly onSearchResultChange: (count: number, activeIndex: number) => void
+  readonly onScrollDirectionChange: (direction: "up" | "down") => void
   readonly readingProgressRatio: number
   readonly searchIndex: number
   readonly searchQuery: string
@@ -40,6 +41,7 @@ export function DocumentPreview({
   documentId,
   onReadingProgressChange,
   onSearchResultChange,
+  onScrollDirectionChange,
   readingProgressRatio,
   searchIndex,
   searchQuery,
@@ -93,6 +95,7 @@ export function DocumentPreview({
                 zoom={zoom}
                 onReadingProgressChange={onReadingProgressChange}
                 onSearchResultChange={onSearchResultChange}
+                onScrollDirectionChange={onScrollDirectionChange}
               />
             </Suspense>
           </PreviewErrorBoundary>

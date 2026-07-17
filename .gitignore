@@ -3,6 +3,7 @@ dist/
 dev-dist/
 coverage/
 .build/
+.omo/
 .codegraph
 .DS_Store
 *.local

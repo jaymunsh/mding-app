@@ -9,6 +9,7 @@ import {
   parseWorkspaceBackupFile,
 } from "../storage/importExport"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
+import { writeLastBackupAt } from "./backupStatus"
 import { messageFromError, type StateSetter } from "./workspaceState"
 
 type DocumentImportRequest = {
@@ -64,6 +65,9 @@ export async function exportWorkspace(
       documents: await repository.listDocuments(),
     }
     downloadBlob(createWorkspaceBackupBlob(snapshot), `mding-${formatBackupDate(new Date())}.zip`)
+    const lastBackupAt = Date.now()
+    writeLastBackupAt(lastBackupAt)
+    setState((current) => ({ ...current, lastBackupAt }))
   })
 }
 

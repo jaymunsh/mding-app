@@ -18,6 +18,7 @@ export type ControllerState = {
   readonly screen: Screen
   readonly errorMessage: string | null
   readonly storagePersisted: boolean
+  readonly lastBackupAt: number | null
   readonly readingProgress: ReadingProgressMap
 }
 
@@ -32,6 +33,7 @@ export const initialState: ControllerState = {
   screen: Screen.Browser,
   errorMessage: null,
   storagePersisted: false,
+  lastBackupAt: null,
   readingProgress: {},
 }
 

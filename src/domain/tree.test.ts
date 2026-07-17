@@ -19,6 +19,27 @@ function touch(node: WorkspaceNode, updatedAt: number): WorkspaceNode {
 }
 
 describe("workspace tree", () => {
+  it("keeps folders first while ordering siblings by the selected sort mode", () => {
+    // Given
+    const archive = touch(node(NodeKind.Folder, "Archive", null), 2)
+    const notes = touch(node(NodeKind.Folder, "Notes", null), 4)
+    const readme = touch(node(NodeKind.File, "Readme.md", null), 1)
+    const today = touch(node(NodeKind.File, "Today.md", null), 3)
+
+    // When
+    const latestTree = buildTree([today, archive, readme, notes], TreeSortOrder.Updated)
+    const nameTree = buildTree([today, archive, readme, notes], TreeSortOrder.Name)
+
+    // Then
+    expect(latestTree.map((item) => item.name)).toEqual([
+      "Notes",
+      "Archive",
+      "Today.md",
+      "Readme.md",
+    ])
+    expect(nameTree.map((item) => item.name)).toEqual(["Archive", "Notes", "Readme.md", "Today.md"])
+  })
+
   it("orders folders before files and nests children when building the tree", () => {
     const folder = node(NodeKind.Folder, "Notes", null)
     const file = node(NodeKind.File, "Readme.md", null)

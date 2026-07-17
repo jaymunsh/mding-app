@@ -1,4 +1,4 @@
-import { EllipsisVertical, Pencil, Upload, ZoomIn, ZoomOut } from "lucide-react"
+import { EllipsisVertical, Maximize2, Pencil, Upload, ZoomIn, ZoomOut } from "lucide-react"
 import { useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 
@@ -11,6 +11,7 @@ type DocumentToolsProps = {
   readonly zoom: number
   readonly onEdit: () => void
   readonly onExport: () => void
+  readonly onFocusReading: () => void
   readonly onResetZoom: () => void
   readonly onZoomIn: () => void
   readonly onZoomOut: () => void
@@ -25,6 +26,7 @@ export function DocumentTools({
   zoom,
   onEdit,
   onExport,
+  onFocusReading,
   onResetZoom,
   onZoomIn,
   onZoomOut,
@@ -62,6 +64,14 @@ export function DocumentTools({
           <button type="button" onClick={() => runAction(onExport)} aria-label={exportLabel}>
             <Upload size={16} aria-hidden="true" />
             <span>{exportLabel}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => runAction(onFocusReading)}
+            aria-label={t("focusReading")}
+          >
+            <Maximize2 size={16} aria-hidden="true" />
+            <span>{t("focusReading")}</span>
           </button>
           {canEdit ? (
             <button

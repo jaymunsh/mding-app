@@ -52,12 +52,13 @@ export function parseWorkspaceBackupZip(buffer: ArrayBuffer): WorkspaceSnapshot 
 }
 
 export function createWorkspaceBackupBlob(snapshot: WorkspaceSnapshot): Blob {
+  const normalizedSnapshot = WorkspaceSnapshotSchema.parse(snapshot)
   return createStoredZipBlob([
     {
       path: "manifest.json",
-      content: textEncoder.encode(JSON.stringify(snapshot, null, 2)),
+      content: textEncoder.encode(JSON.stringify(normalizedSnapshot, null, 2)),
     },
-    ...createDocumentZipEntries(snapshot).map((entry) => ({
+    ...createDocumentZipEntries(normalizedSnapshot).map((entry) => ({
       path: entry.path,
       content: textEncoder.encode(entry.content),
     })),

@@ -1,8 +1,19 @@
-import { TreeSortOrder } from "../domain/tree"
-import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
+import { buildTree, TreeSortOrder } from "../domain/tree"
+import { type NodeId, NodeKind, type TreeNode, type WorkspaceNode } from "../domain/workspace"
 
 export function nextSortOrder(sortOrder: TreeSortOrder): TreeSortOrder {
   return sortOrder === TreeSortOrder.Updated ? TreeSortOrder.Name : TreeSortOrder.Updated
+}
+
+export function buildPinnedShortcuts(
+  nodes: readonly WorkspaceNode[],
+  sortOrder: TreeSortOrder,
+): readonly TreeNode[] {
+  const pinnedFiles = nodes
+    .filter((node) => node.kind === NodeKind.File && node.pinned === true)
+    .map((node) => ({ ...node, parentId: null }))
+
+  return buildTree(pinnedFiles, sortOrder)
 }
 
 export function canUseMoveTarget(node: TreeNode, selectedTreeNodes: readonly TreeNode[]): boolean {

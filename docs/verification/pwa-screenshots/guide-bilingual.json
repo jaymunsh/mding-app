@@ -1,0 +1,128 @@
+{
+  "scenario": "Quick Guide covers Todo 7 features in both languages at desktop and mobile widths",
+  "invocation": "PWA_BASE_URL=http://127.0.0.1:4205/ PWA_EVIDENCE_DIR=docs/verification/pwa-screenshots npm run qa:visual",
+  "viewports": {
+    "desktop": {
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "english": {
+        "checks": {
+          "pins": true,
+          "namedCreation": true,
+          "dragFeedback": true,
+          "invalidDrops": true,
+          "focusExits": true,
+          "editorGuardrail": true,
+          "workspaceItems": true,
+          "noHorizontalOverflow": true,
+          "noClippedCopy": true
+        },
+        "workspaceItemCount": 6,
+        "layout": {
+          "contentScrollWidth": 418,
+          "contentClientWidth": 418,
+          "documentScrollWidth": 1440,
+          "clippedNodes": 0
+        }
+      },
+      "korean": {
+        "checks": {
+          "pins": true,
+          "namedCreation": true,
+          "dragFeedback": true,
+          "invalidDrops": true,
+          "focusExits": true,
+          "editorGuardrail": true,
+          "workspaceItems": true,
+          "noHorizontalOverflow": true,
+          "noClippedCopy": true
+        },
+        "workspaceItemCount": 6,
+        "layout": {
+          "contentScrollWidth": 418,
+          "contentClientWidth": 418,
+          "documentScrollWidth": 1440,
+          "clippedNodes": 0
+        }
+      }
+    },
+    "mobile": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "english": {
+        "checks": {
+          "pins": true,
+          "namedCreation": true,
+          "dragFeedback": true,
+          "invalidDrops": true,
+          "focusExits": true,
+          "editorGuardrail": true,
+          "workspaceItems": true,
+          "noHorizontalOverflow": true,
+          "noClippedCopy": true
+        },
+        "workspaceItemCount": 6,
+        "layout": {
+          "contentScrollWidth": 356,
+          "contentClientWidth": 356,
+          "documentScrollWidth": 390,
+          "clippedNodes": 0
+        }
+      },
+      "korean": {
+        "checks": {
+          "pins": true,
+          "namedCreation": true,
+          "dragFeedback": true,
+          "invalidDrops": true,
+          "focusExits": true,
+          "editorGuardrail": true,
+          "workspaceItems": true,
+          "noHorizontalOverflow": true,
+          "noClippedCopy": true
+        },
+        "workspaceItemCount": 6,
+        "layout": {
+          "contentScrollWidth": 356,
+          "contentClientWidth": 356,
+          "documentScrollWidth": 390,
+          "clippedNodes": 0
+        }
+      }
+    }
+  },
+  "screenshots": {
+    "desktop": {
+      "english": {
+        "top": "docs/verification/pwa-screenshots/guide-desktop-english-top.png",
+        "middle": "docs/verification/pwa-screenshots/guide-desktop-english-middle.png",
+        "bottom": "docs/verification/pwa-screenshots/guide-desktop-english-bottom.png"
+      },
+      "korean": {
+        "top": "docs/verification/pwa-screenshots/guide-desktop-korean-top.png",
+        "middle": "docs/verification/pwa-screenshots/guide-desktop-korean-middle.png",
+        "bottom": "docs/verification/pwa-screenshots/guide-desktop-korean-bottom.png"
+      }
+    },
+    "mobile": {
+      "english": {
+        "top": "docs/verification/pwa-screenshots/guide-mobile-english-top.png",
+        "middle": "docs/verification/pwa-screenshots/guide-mobile-english-middle.png",
+        "bottom": "docs/verification/pwa-screenshots/guide-mobile-english-bottom.png"
+      },
+      "korean": {
+        "top": "docs/verification/pwa-screenshots/guide-mobile-korean-top.png",
+        "middle": "docs/verification/pwa-screenshots/guide-mobile-korean-middle.png",
+        "bottom": "docs/verification/pwa-screenshots/guide-mobile-korean-bottom.png"
+      }
+    }
+  },
+  "staleLanguageFallback": true,
+  "checksPassed": 36,
+  "checksTotal": 36,
+  "pass": true
+}

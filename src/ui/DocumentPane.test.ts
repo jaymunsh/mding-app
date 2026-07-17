@@ -1,5 +1,29 @@
 import { describe, expect, it } from "vitest"
+import { DocumentFormat } from "../domain/workspace"
 import { shouldNavigateBackFromEdgeSwipe } from "./documentGestures"
+import {
+  canEnterPreviewFocus,
+  shouldExitPreviewFocusFromKeyboard,
+} from "./useDocumentPaneNavigation"
+
+describe("Preview focus", () => {
+  it("allows explicit focus for Markdown and HTML previews only", () => {
+    expect(
+      canEnterPreviewFocus({ documentFormat: DocumentFormat.Markdown, isEditing: false }),
+    ).toBe(true)
+    expect(canEnterPreviewFocus({ documentFormat: DocumentFormat.Html, isEditing: false })).toBe(
+      true,
+    )
+    expect(canEnterPreviewFocus({ documentFormat: DocumentFormat.Markdown, isEditing: true })).toBe(
+      false,
+    )
+  })
+
+  it("exits focused reading with Escape", () => {
+    expect(shouldExitPreviewFocusFromKeyboard("Escape")).toBe(true)
+    expect(shouldExitPreviewFocusFromKeyboard("Enter")).toBe(false)
+  })
+})
 
 describe("Document pane edge swipe", () => {
   it("navigates back only for a mobile left-edge horizontal swipe", () => {

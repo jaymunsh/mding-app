@@ -1,11 +1,4 @@
-import {
-  collectDescendantIds,
-  findNode,
-  getFolderTarget,
-  moveNodesToParent,
-  uniqueName,
-} from "../domain/tree"
-import type { WorkspaceNode } from "../domain/workspace"
+import { findNode, moveNodesToParent } from "../domain/tree"
 import {
   createNodeId,
   DocumentFormat,
@@ -18,10 +11,14 @@ import { requestPersistentStorage } from "../storage/importExport"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
 import { messageFromError, Screen, type StateSetter } from "./workspaceState"
 
+export type MutationOutcome =
+  | { readonly kind: "success" }
+  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "no-op"; readonly message: string }
+
 type ItemRequest = {
   readonly repository: WorkspaceRepository
   readonly setState: StateSetter
-  readonly nodes: readonly WorkspaceNode[]
   readonly selectedId: NodeId | null
   readonly kind: NodeKind
   readonly name?: string | undefined
@@ -41,11 +38,11 @@ type MoveNodesRequest = {
   readonly parentId: NodeId | null
 }
 
-type DeleteNodesRequest = {
+type FilePinRequest = {
   readonly repository: WorkspaceRepository
   readonly setState: StateSetter
-  readonly nodes: readonly WorkspaceNode[]
-  readonly selectedIds: readonly NodeId[]
+  readonly id: NodeId
+  readonly pinned: boolean
 }
 
 export async function initializeWorkspace(
@@ -123,28 +120,26 @@ export async function saveSelectedDocument(
           }
         : current,
     )
+    return undefined
   })
 }
 
-export async function createItem(request: ItemRequest): Promise<void> {
-  const parentId = getFolderTarget(request.nodes, request.selectedId)
+export async function createItem(request: ItemRequest): Promise<MutationOutcome> {
   const baseName =
-    request.kind === NodeKind.File ? normalizeMarkdownFileName(request.name) : "Folder"
-  const name = uniqueName(request.nodes, parentId, baseName)
+    request.kind === NodeKind.File
+      ? normalizeMarkdownFileName(request.name)
+      : request.name?.trim() || "Folder"
   const now = Date.now()
   const id = createNodeId()
-  const node = { id, parentId, kind: request.kind, name, createdAt: now, updatedAt: now }
 
-  await withError(request.setState, async () => {
-    await request.repository.saveNode(node)
-    if (request.kind === NodeKind.File) {
-      await request.repository.saveDocument({
-        id,
-        markdown: "",
-        format: DocumentFormat.Markdown,
-        updatedAt: now,
-      })
-    }
+  return withError(request.setState, async () => {
+    await request.repository.createItem({
+      id,
+      selectedId: request.selectedId,
+      kind: request.kind,
+      baseName,
+      createdAt: now,
+    })
     const nodes = await request.repository.listNodes()
     request.setState((current) => ({
       ...current,
@@ -159,6 +154,7 @@ export async function createItem(request: ItemRequest): Promise<void> {
       screen: request.kind === NodeKind.File ? Screen.Document : current.screen,
       errorMessage: null,
     }))
+    return undefined
   })
 }
 
@@ -171,59 +167,17 @@ function normalizeMarkdownFileName(name: string | undefined): string {
   return trimmedName.toLowerCase().endsWith(".md") ? trimmedName : `${trimmedName}.md`
 }
 
-export async function deleteSelected(
-  repository: WorkspaceRepository,
-  setState: StateSetter,
-  nodes: readonly WorkspaceNode[],
-  selectedId: NodeId | null,
-): Promise<void> {
-  const selectedIds = selectedId === null ? [] : [selectedId]
-  await deleteNodes({ repository, setState, nodes, selectedIds })
-}
-
-export async function deleteNodes(request: DeleteNodesRequest): Promise<void> {
-  if (request.selectedIds.length === 0) {
-    request.setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
-    return
-  }
-
-  await withError(request.setState, async () => {
-    const idsToDelete = new Set<NodeId>()
-    for (const selectedId of request.selectedIds) {
-      idsToDelete.add(selectedId)
-      for (const descendantId of collectDescendantIds(request.nodes, selectedId)) {
-        idsToDelete.add(descendantId)
-      }
-    }
-    for (const id of idsToDelete) {
-      await request.repository.deleteNode(id)
-    }
-    const refreshedNodes = await request.repository.listNodes()
-    request.setState((current) => ({
-      ...current,
-      nodes: refreshedNodes,
-      selectedId: null,
-      selectedDocument: null,
-      editBuffer: "",
-      isEditing: false,
-      screen: Screen.Browser,
-      errorMessage: null,
-    }))
-  })
-}
-
-export async function moveSelected(request: MoveRequest): Promise<void> {
+export async function moveSelected(request: MoveRequest): Promise<MutationOutcome> {
   const selectedIds = request.selectedId === null ? [] : [request.selectedId]
-  await moveNodes({ ...request, selectedIds })
+  return moveNodes({ ...request, selectedIds })
 }
 
-export async function moveNodes(request: MoveNodesRequest): Promise<void> {
+export async function moveNodes(request: MoveNodesRequest): Promise<MutationOutcome> {
   if (request.selectedIds.length === 0) {
-    request.setState((current) => ({ ...current, errorMessage: "Choose a file or folder first." }))
-    return
+    return noOp(request.setState, "Choose a file or folder first.")
   }
 
-  await withError(request.setState, async () => {
+  return withError(request.setState, async () => {
     const nodes = await request.repository.listNodes()
     const result = moveNodesToParent({
       nodes,
@@ -232,8 +186,7 @@ export async function moveNodes(request: MoveNodesRequest): Promise<void> {
       updatedAt: Date.now(),
     })
     if (result.kind === "invalid") {
-      request.setState((current) => ({ ...current, errorMessage: result.message }))
-      return
+      return noOp(request.setState, result.message)
     }
     for (const movedId of result.movedIds) {
       const node = findNode(result.nodes, movedId)
@@ -243,6 +196,20 @@ export async function moveNodes(request: MoveNodesRequest): Promise<void> {
       await request.repository.saveNode(node)
     }
     await refreshAfterMutation(request.repository, request.setState)
+    return undefined
+  })
+}
+
+export async function setFilePinned(request: FilePinRequest): Promise<MutationOutcome> {
+  return withError(request.setState, async () => {
+    const nodes = await request.repository.listNodes()
+    const node = findNode(nodes, request.id)
+    if (node?.kind !== NodeKind.File) {
+      return noOp(request.setState, "Select a file first.")
+    }
+    await request.repository.saveNode({ ...node, pinned: request.pinned })
+    await refreshAfterMutation(request.repository, request.setState)
+    return undefined
   })
 }
 
@@ -254,10 +221,21 @@ async function refreshAfterMutation(
   setState((current) => ({ ...current, nodes, errorMessage: null }))
 }
 
-async function withError(setState: StateSetter, operation: () => Promise<void>): Promise<void> {
+function noOp(setState: StateSetter, message: string): MutationOutcome {
+  setState((current) => ({ ...current, errorMessage: message }))
+  return { kind: "no-op", message }
+}
+
+async function withError(
+  setState: StateSetter,
+  operation: () => Promise<MutationOutcome | undefined>,
+): Promise<MutationOutcome> {
   try {
-    await operation()
+    const outcome = await operation()
+    return outcome ?? { kind: "success" }
   } catch (error) {
-    setState((current) => ({ ...current, errorMessage: messageFromError(error) }))
+    const message = messageFromError(error)
+    setState((current) => ({ ...current, errorMessage: message }))
+    return { kind: "error", message }
   }
 }

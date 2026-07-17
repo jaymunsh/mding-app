@@ -1,19 +1,13 @@
-import { ArrowLeft, Check, Search, X } from "lucide-react"
-import {
-  type PointerEvent as ReactPointerEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { ArrowLeft, Check, Minimize2, PanelLeftOpen, Search, X } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 import type { WorkspaceController } from "../app/workspaceController"
 import { DocumentFormat, isEditableDocument, NodeKind } from "../domain/workspace"
 import { DocumentPreview } from "./DocumentPreview"
 import { DocumentSearchBar } from "./DocumentSearchBar"
 import { DocumentTools } from "./DocumentTools"
-import { shouldNavigateBackFromEdgeSwipe, startsFromBackSwipeEdge } from "./documentGestures"
 import { createDocumentSearchResetSignal } from "./documentSearchState"
+import { useDocumentPaneNavigation } from "./useDocumentPaneNavigation"
 
 const PREVIEW_ZOOM_STEPS = [0.75, 0.9, 1, 1.1, 1.25, 1.5] as const
 const DEFAULT_PREVIEW_ZOOM_INDEX = 2
@@ -21,21 +15,23 @@ const DEFAULT_PREVIEW_ZOOM_INDEX = 2
 type DocumentPaneProps = {
   readonly appLanguage: AppLanguage
   readonly workspace: WorkspaceController
+  readonly isSidebarCollapsed: boolean
+  readonly onExpandSidebar: () => void
+  readonly onPreviewFocusChange: (isFocused: boolean) => void
 }
 
-type ActiveBackSwipe = {
-  readonly pointerId: number
-  readonly startX: number
-  readonly startY: number
-}
-
-export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
+export function DocumentPane({
+  appLanguage,
+  workspace,
+  isSidebarCollapsed,
+  onExpandSidebar,
+  onPreviewFocusChange,
+}: DocumentPaneProps) {
   const [previewZoomIndex, setPreviewZoomIndex] = useState(DEFAULT_PREVIEW_ZOOM_INDEX)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIndex, setSearchIndex] = useState(0)
   const [searchCount, setSearchCount] = useState(0)
-  const activeBackSwipeRef = useRef<ActiveBackSwipe | null>(null)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
   const handleReadingProgressChange = useCallback(
     (documentId: string, ratio: number) => {
@@ -48,6 +44,12 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
     setSearchIndex(count === 0 ? 0 : Math.max(0, Math.min(activeIndex, count - 1)))
   }, [])
   const selectedNodeId = workspace.selectedNode?.id ?? null
+  const navigation = useDocumentPaneNavigation({
+    documentFormat: workspace.selectedDocument?.format ?? DocumentFormat.Markdown,
+    isEditing: workspace.isEditing,
+    selectedNodeId,
+    onBack: workspace.showBrowser,
+  })
   const searchResetSignal = createDocumentSearchResetSignal({
     isEditing: workspace.isEditing,
     screen: workspace.screen,
@@ -68,9 +70,24 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
     resetSearch()
   }, [resetSearch, searchResetSignal])
 
+  useEffect(() => {
+    onPreviewFocusChange(navigation.isPreviewFocus)
+    return () => onPreviewFocusChange(false)
+  }, [navigation.isPreviewFocus, onPreviewFocusChange])
+
   if (workspace.selectedNode === null || workspace.selectedNode.kind === NodeKind.Folder) {
     return (
       <section className="document-pane empty-document" aria-label={t("noDocumentAria")}>
+        {isSidebarCollapsed ? (
+          <button
+            className="sidebar-expand-button"
+            type="button"
+            onClick={onExpandSidebar}
+            aria-label={t("expandSidebar")}
+          >
+            <PanelLeftOpen size={16} aria-hidden="true" />
+          </button>
+        ) : null}
         <div>
           <h1>{t("selectFile")}</h1>
           <p>{t("selectFileHelp")}</p>
@@ -107,65 +124,33 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
     setSearchIndex((current) => (current + 1) % searchCount)
   }
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLElement>): void {
-    if (event.pointerType !== "touch" || workspace.isEditing) {
-      activeBackSwipeRef.current = null
-      return
-    }
-
-    if (!startsFromBackSwipeEdge(event.clientX, window.innerWidth)) {
-      activeBackSwipeRef.current = null
-      return
-    }
-
-    activeBackSwipeRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  function handlePointerUp(event: ReactPointerEvent<HTMLElement>): void {
-    const activeBackSwipe = activeBackSwipeRef.current
-    activeBackSwipeRef.current = null
-    if (activeBackSwipe === null || activeBackSwipe.pointerId !== event.pointerId) {
-      return
-    }
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-
-    if (
-      shouldNavigateBackFromEdgeSwipe({
-        currentX: event.clientX,
-        currentY: event.clientY,
-        isEditing: workspace.isEditing,
-        startX: activeBackSwipe.startX,
-        startY: activeBackSwipe.startY,
-        viewportWidth: window.innerWidth,
-      })
-    ) {
-      workspace.showBrowser()
-    }
-  }
-
   return (
-    <section className="document-pane" aria-label={t("document")}>
+    <section
+      className={navigation.isHeaderCondensed ? "document-pane header-condensed" : "document-pane"}
+      aria-label={t("document")}
+      onScrollCapture={navigation.handleScrollCapture}
+    >
       {!workspace.isEditing ? (
         <div
           className="document-edge-swipe-zone"
           aria-hidden="true"
-          onPointerCancel={() => {
-            activeBackSwipeRef.current = null
-          }}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
+          onPointerCancel={navigation.cancelBackSwipe}
+          onPointerDown={navigation.handlePointerDown}
+          onPointerUp={navigation.handlePointerUp}
         />
       ) : null}
       <header className="document-header">
         <div className="document-title-group">
+          {isSidebarCollapsed ? (
+            <button
+              className="sidebar-expand-button"
+              type="button"
+              onClick={onExpandSidebar}
+              aria-label={t("expandSidebar")}
+            >
+              <PanelLeftOpen size={16} aria-hidden="true" />
+            </button>
+          ) : null}
           <button className="document-back" type="button" onClick={workspace.showBrowser}>
             <ArrowLeft size={16} aria-hidden="true" />
             <span>{t("back")}</span>
@@ -213,6 +198,7 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
                 zoom={previewZoom}
                 onEdit={workspace.startEditing}
                 onExport={workspace.exportSelectedDocument}
+                onFocusReading={navigation.enterPreviewFocus}
                 onResetZoom={() => setPreviewZoomIndex(DEFAULT_PREVIEW_ZOOM_INDEX)}
                 onZoomIn={() =>
                   setPreviewZoomIndex((current) =>
@@ -239,6 +225,17 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
         />
       ) : null}
 
+      {navigation.isPreviewFocus ? (
+        <button
+          className="preview-focus-exit"
+          type="button"
+          onClick={navigation.exitPreviewFocus}
+          aria-label={t("exitFocusReading")}
+        >
+          <Minimize2 size={16} aria-hidden="true" />
+        </button>
+      ) : null}
+
       {workspace.isEditing ? (
         <label className="editor-wrap">
           <span>{t("markdownSource")}</span>
@@ -261,6 +258,7 @@ export function DocumentPane({ appLanguage, workspace }: DocumentPaneProps) {
           zoom={previewZoom}
           onReadingProgressChange={handleReadingProgressChange}
           onSearchResultChange={handleSearchResultChange}
+          onScrollDirectionChange={navigation.handleHtmlScrollDirection}
         />
       )}
     </section>

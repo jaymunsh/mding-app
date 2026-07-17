@@ -1,22 +1,28 @@
 import { useEffect, useMemo, useState } from "react"
 import { assertNever } from "../domain/result"
 import { findNode } from "../domain/tree"
-import type { WorkspaceNode } from "../domain/workspace"
+import type { WorkspaceNode, WorkspaceSnapshot } from "../domain/workspace"
 import { type NodeId, NodeKind, type WorkspaceDocument } from "../domain/workspace"
 import { createWorkspaceRepository } from "../storage/workspaceRepository"
+import { readLastBackupAt } from "./backupStatus"
 import { registerDocumentLaunchHandler } from "./fileLaunch"
 import { openLaunchedDocumentFiles } from "./fileLaunchActions"
 import { readReadingProgress, updateReadingProgress, writeReadingProgress } from "./readingProgress"
 import {
   createItem,
-  deleteSelected,
-  deleteNodes as deleteWorkspaceNodes,
   initializeWorkspace,
+  type MutationOutcome,
   moveSelected,
   moveNodes as moveWorkspaceNodes,
   saveSelectedDocument,
   selectNode,
+  setFilePinned,
 } from "./workspaceActions"
+import {
+  deleteSelected,
+  deleteNodes as deleteWorkspaceNodes,
+  restoreDeletedSnapshot,
+} from "./workspaceDeleteActions"
 import { renameSelected } from "./workspaceRenameActions"
 import { initialState, messageFromError, Screen } from "./workspaceState"
 import {
@@ -38,6 +44,8 @@ export type WorkspaceController = {
   readonly screen: Screen
   readonly errorMessage: string | null
   readonly storagePersisted: boolean
+  readonly lastBackupAt: number | null
+  readonly pendingDeletionCount: number
   readonly readingProgress: Readonly<Record<string, number>>
   readonly selectNode: (id: NodeId) => Promise<void>
   readonly selectNodeInTree: (id: NodeId) => Promise<void>
@@ -46,15 +54,18 @@ export type WorkspaceController = {
   readonly cancelEditing: () => void
   readonly updateEditBuffer: (value: string) => void
   readonly saveSelectedDocument: () => Promise<void>
-  readonly createFile: (name?: string) => Promise<void>
-  readonly createFolder: () => Promise<void>
+  readonly createFile: (name?: string) => Promise<MutationOutcome>
+  readonly createFolder: (name: string) => Promise<MutationOutcome>
   readonly renameSelected: (name: string) => Promise<void>
   readonly deleteSelected: () => Promise<void>
   readonly deleteNodes: (ids: readonly NodeId[]) => Promise<void>
-  readonly moveSelectedToRoot: () => Promise<void>
-  readonly moveSelectedToFolder: (id: NodeId) => Promise<void>
-  readonly moveNodesToRoot: (ids: readonly NodeId[]) => Promise<void>
-  readonly moveNodesToFolder: (ids: readonly NodeId[], id: NodeId) => Promise<void>
+  readonly dismissPendingDeletion: () => void
+  readonly undoPendingDeletion: () => Promise<void>
+  readonly moveSelectedToRoot: () => Promise<MutationOutcome>
+  readonly moveSelectedToFolder: (id: NodeId) => Promise<MutationOutcome>
+  readonly moveNodesToRoot: (ids: readonly NodeId[]) => Promise<MutationOutcome>
+  readonly moveNodesToFolder: (ids: readonly NodeId[], id: NodeId) => Promise<MutationOutcome>
+  readonly setFilePinned?: (id: NodeId, pinned: boolean) => Promise<MutationOutcome>
   readonly importDocumentFiles: (files: readonly File[]) => Promise<void>
   readonly importWorkspaceFile: (file: File) => Promise<void>
   readonly exportSelectedDocument: () => void
@@ -66,13 +77,23 @@ export type WorkspaceController = {
 export function useWorkspaceController(): WorkspaceController {
   const [state, setState] = useState(() => ({
     ...initialState,
+    lastBackupAt: readLastBackupAt(),
     readingProgress: readReadingProgress(),
   }))
+  const [pendingDeletion, setPendingDeletion] = useState<WorkspaceSnapshot | null>(null)
   const repository = useMemo(() => createWorkspaceRepository(), [])
 
   useEffect(() => {
     void initializeWorkspace(repository, setState)
   }, [repository])
+
+  useEffect(() => {
+    if (pendingDeletion === null) {
+      return
+    }
+    const timeout = window.setTimeout(() => setPendingDeletion(null), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [pendingDeletion])
 
   useEffect(() => {
     registerDocumentLaunchHandler({
@@ -94,6 +115,8 @@ export function useWorkspaceController(): WorkspaceController {
     screen: state.screen,
     errorMessage: state.errorMessage,
     storagePersisted: state.storagePersisted,
+    lastBackupAt: state.lastBackupAt,
+    pendingDeletionCount: pendingDeletion?.nodes.length ?? 0,
     readingProgress: state.readingProgress,
     selectNode: (id) => selectNode(repository, setState, id),
     selectNodeInTree: async (id) => {
@@ -129,28 +152,37 @@ export function useWorkspaceController(): WorkspaceController {
       createItem({
         repository,
         setState,
-        nodes: state.nodes,
         selectedId: state.selectedId,
         kind: NodeKind.File,
         name,
       }),
-    createFolder: () =>
+    createFolder: (name) =>
       createItem({
         repository,
         setState,
-        nodes: state.nodes,
         selectedId: state.selectedId,
         kind: NodeKind.Folder,
+        name,
       }),
     renameSelected: (name) => renameSelected(repository, setState, state.selectedId, name),
     deleteSelected: () => deleteSelected(repository, setState, state.nodes, state.selectedId),
-    deleteNodes: (ids) =>
-      deleteWorkspaceNodes({
+    deleteNodes: async (ids) => {
+      const deletedSnapshot = await deleteWorkspaceNodes({
         repository,
         setState,
         nodes: state.nodes,
         selectedIds: ids,
-      }),
+      })
+      setPendingDeletion(deletedSnapshot)
+    },
+    dismissPendingDeletion: () => setPendingDeletion(null),
+    undoPendingDeletion: async () => {
+      if (pendingDeletion === null) {
+        return
+      }
+      await restoreDeletedSnapshot(repository, setState, pendingDeletion)
+      setPendingDeletion(null)
+    },
     moveSelectedToRoot: () =>
       moveSelected({
         repository,
@@ -178,6 +210,13 @@ export function useWorkspaceController(): WorkspaceController {
         setState,
         selectedIds: ids,
         parentId: id,
+      }),
+    setFilePinned: (id, pinned) =>
+      setFilePinned({
+        repository,
+        setState,
+        id,
+        pinned,
       }),
     importDocumentFiles: (files) =>
       importDocumentFiles({

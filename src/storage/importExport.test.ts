@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DocumentFormat } from "../domain/workspace"
+import { DocumentFormat, NodeKind } from "../domain/workspace"
 import {
   createSnapshotFromDocumentFiles,
   createSnapshotFromMarkdown,
@@ -63,9 +63,17 @@ describe("workspace import and export helpers", () => {
   })
 
   it("parses legacy JSON workspace backups at the input boundary", () => {
+    // Given
     const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
     const legacySnapshot = {
-      nodes: snapshot.nodes,
+      nodes: snapshot.nodes.map((node) => ({
+        id: node.id,
+        parentId: node.parentId,
+        kind: node.kind,
+        name: node.name,
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+      })),
       documents: snapshot.documents.map((document) => ({
         id: document.id,
         markdown: document.markdown,
@@ -73,7 +81,31 @@ describe("workspace import and export helpers", () => {
       })),
     }
 
-    expect(parseWorkspaceBackupJson(JSON.stringify(legacySnapshot))).toEqual(snapshot)
+    // When
+    const parsedSnapshot = parseWorkspaceBackupJson(JSON.stringify(legacySnapshot))
+
+    // Then
+    expect(parsedSnapshot.nodes[0]?.kind).toBe(NodeKind.File)
+    expect(parsedSnapshot.nodes.find((node) => node.kind === NodeKind.File)?.pinned).toBe(false)
+    expect(parsedSnapshot.documents[0]?.format).toBe(DocumentFormat.Markdown)
+  })
+
+  it("preserves a current pinned file through backup export and import", async () => {
+    // Given
+    const snapshot = createSnapshotFromMarkdown([{ name: "pinned.md", markdown: "# Pinned" }], null)
+    const pinnedSnapshot = {
+      ...snapshot,
+      nodes: snapshot.nodes.map((node) => ({ ...node, pinned: true })),
+    }
+
+    // When
+    const blob = createWorkspaceBackupBlob(pinnedSnapshot)
+    const restoredSnapshot = await parseWorkspaceBackupFile(
+      new File([blob], "mding-backup.zip", { type: "application/zip" }),
+    )
+
+    // Then
+    expect(restoredSnapshot.nodes.find((node) => node.kind === NodeKind.File)?.pinned).toBe(true)
   })
 
   it("creates zip backups with a manifest and readable document files", async () => {
@@ -93,20 +125,32 @@ describe("workspace import and export helpers", () => {
   })
 
   it("restores workspace snapshots from zip backups", async () => {
+    // Given
     const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
     const blob = createWorkspaceBackupBlob(snapshot)
     const file = new File([blob], "mding-backup.zip", { type: "application/zip" })
 
-    await expect(parseWorkspaceBackupFile(file)).resolves.toEqual(snapshot)
+    // When
+    const restoredSnapshot = await parseWorkspaceBackupFile(file)
+
+    // Then
+    expect(restoredSnapshot.nodes.find((node) => node.kind === NodeKind.File)?.pinned).toBe(false)
+    expect(restoredSnapshot.documents).toEqual(snapshot.documents)
   })
 
   it("still restores workspace snapshots from legacy JSON backup files", async () => {
+    // Given
     const snapshot = createSnapshotFromMarkdown([{ name: "hello.md", markdown: "# Hello" }], null)
     const file = new File([JSON.stringify(snapshot)], "mding-backup.json", {
       type: "application/json",
     })
 
-    await expect(parseWorkspaceBackupFile(file)).resolves.toEqual(snapshot)
+    // When
+    const restoredSnapshot = await parseWorkspaceBackupFile(file)
+
+    // Then
+    expect(restoredSnapshot.nodes.find((node) => node.kind === NodeKind.File)?.pinned).toBe(false)
+    expect(restoredSnapshot.documents).toEqual(snapshot.documents)
   })
 
   it("formats backup filenames with stable calendar dates", () => {

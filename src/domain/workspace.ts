@@ -17,14 +17,24 @@ export type DocumentFormat = (typeof DocumentFormat)[keyof typeof DocumentFormat
 export const NodeIdSchema = z.string().uuid().brand<"NodeId">()
 export type NodeId = z.infer<typeof NodeIdSchema>
 
-export type WorkspaceNode = {
+type WorkspaceNodeFields = {
   readonly id: NodeId
   readonly parentId: NodeId | null
-  readonly kind: NodeKind
   readonly name: string
   readonly createdAt: number
   readonly updatedAt: number
 }
+
+export type WorkspaceFileNode = WorkspaceNodeFields & {
+  readonly kind: typeof NodeKind.File
+  readonly pinned?: boolean
+}
+
+export type WorkspaceFolderNode = WorkspaceNodeFields & {
+  readonly kind: typeof NodeKind.Folder
+}
+
+export type WorkspaceNode = WorkspaceFileNode | WorkspaceFolderNode
 
 export type WorkspaceDocument = {
   readonly id: NodeId
@@ -42,14 +52,27 @@ export type WorkspaceSnapshot = {
   readonly documents: readonly WorkspaceDocument[]
 }
 
-export const WorkspaceNodeSchema = z.object({
+const WorkspaceNodeBaseSchema = z.object({
   id: NodeIdSchema,
   parentId: NodeIdSchema.nullable(),
-  kind: z.union([z.literal(NodeKind.File), z.literal(NodeKind.Folder)]),
   name: z.string().min(1),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
 })
+
+const WorkspaceFileNodeSchema = WorkspaceNodeBaseSchema.extend({
+  kind: z.literal(NodeKind.File),
+  pinned: z.boolean().default(false),
+})
+
+const WorkspaceFolderNodeSchema = WorkspaceNodeBaseSchema.extend({
+  kind: z.literal(NodeKind.Folder),
+}).strict()
+
+export const WorkspaceNodeSchema = z.discriminatedUnion("kind", [
+  WorkspaceFileNodeSchema,
+  WorkspaceFolderNodeSchema,
+])
 
 export const WorkspaceDocumentSchema = z.object({
   id: NodeIdSchema,

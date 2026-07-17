@@ -4,8 +4,45 @@ import {
   LanguagePreference,
   readLanguagePreference,
   resolveAppLanguage,
+  type TranslationKey,
+  translate,
   translateAppMessage,
 } from "./i18n"
+
+const featureTranslationKeys = [
+  "pinFile",
+  "pinned",
+  "unpinFile",
+  "file",
+  "folder",
+  "newMarkdownFile",
+  "newFolder",
+  "fileName",
+  "folderName",
+  "invalidName",
+  "mdExtensionHelp",
+  "moveToFolder",
+  "moveToRoot",
+  "movedToFolder",
+  "movedToRoot",
+  "focusReading",
+  "exitFocusReading",
+  "helpWorkspace1",
+  "helpWorkspace2",
+  "helpWorkspace3",
+  "helpWorkspace4",
+  "helpWorkspace5",
+  "helpWorkspace6",
+] as const satisfies readonly TranslationKey[]
+
+const featureErrorTranslations = [
+  ["Choose a file or folder first.", "먼저 파일 또는 폴더를 선택하세요."],
+  ["Choose a folder target.", "대상 폴더를 선택하세요."],
+  ["Choose a different folder.", "다른 폴더를 선택하세요."],
+  ["Cannot move into itself.", "자기 자신 안으로는 이동할 수 없습니다."],
+  ["Selected item no longer exists.", "선택한 항목이 더 이상 존재하지 않습니다."],
+  ["Select a file first.", "먼저 파일을 선택하세요."],
+] as const
 
 describe("i18n", () => {
   beforeEach(() => {
@@ -24,6 +61,12 @@ describe("i18n", () => {
 
   it("normalizes the legacy system language preference to English", () => {
     localStorage.setItem("mding.language", LanguagePreference.System)
+
+    expect(readLanguagePreference()).toBe(LanguagePreference.English)
+  })
+
+  it("falls back to English for a stale persisted language value", () => {
+    localStorage.setItem("mding.language", "fr")
 
     expect(readLanguagePreference()).toBe(LanguagePreference.English)
   })
@@ -62,6 +105,23 @@ describe("i18n", () => {
     expect(translateAppMessage("en", "HTML files are preview-only.")).toBe(
       "HTML files are preview-only.",
     )
+  })
+
+  it("keeps every new feature label and guide entry populated in both languages", () => {
+    for (const language of ["en", "ko"] as const) {
+      for (const key of featureTranslationKeys) {
+        const value = translate(language, key)
+        expect(value.trim()).not.toBe("")
+        expect(value).not.toBe(key)
+      }
+    }
+  })
+
+  it("translates every new move and selection error for Korean", () => {
+    for (const [message, korean] of featureErrorTranslations) {
+      expect(translateAppMessage("ko", message)).toBe(korean)
+      expect(translateAppMessage("en", message)).toBe(message)
+    }
   })
 })
 

@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react"
-import { type DragEvent, useEffect, useRef, useState } from "react"
+import { type CSSProperties, type DragEvent, useEffect, useRef, useState } from "react"
+import { APP_VERSION } from "../app/appVersion"
 import { classifyDroppedFiles, DropImportKind } from "../app/dropImport"
 import {
   readLanguagePreference,
@@ -14,12 +15,25 @@ import {
   saveThemePreference,
   ThemePreference,
 } from "../app/theme"
+import { isUpdateHistoryUnseen, markUpdateHistorySeen } from "../app/updateHistory"
 import { useWorkspaceController } from "../app/workspaceController"
 import { AppTopbar } from "./AppTopbar"
-import { CreateFileDialog } from "./CreateFileDialog"
+import {
+  CreateDialogKind,
+  type CreateDialogKind as CreateDialogKindType,
+  CreateFileDialog,
+  isCreateDialogNameValid,
+} from "./CreateFileDialog"
 import { DocumentPane } from "./DocumentPane"
 import { FileTree } from "./FileTree"
 import { HelpDialog } from "./HelpDialog"
+import { UndoToast } from "./UndoToast"
+import { UpdateHistoryDialog } from "./UpdateHistoryDialog"
+import { useSidebarLayout } from "./useSidebarLayout"
+
+type WorkspaceFrameStyle = CSSProperties & {
+  readonly "--sidebar-width": string
+}
 
 export function App() {
   const workspace = useWorkspaceController()
@@ -29,11 +43,21 @@ export function App() {
   const [themePreference, setThemePreference] = useState(readThemePreference)
   const [languagePreference, setLanguagePreference] = useState(readLanguagePreference)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [isUpdateHistoryOpen, setIsUpdateHistoryOpen] = useState(false)
+  const [hasUnseenUpdate, setHasUnseenUpdate] = useState(() => isUpdateHistoryUnseen(APP_VERSION))
   const [isCreateFileOpen, setIsCreateFileOpen] = useState(false)
+  const [createDialogKind, setCreateDialogKind] = useState<CreateDialogKindType>(
+    CreateDialogKind.File,
+  )
   const [isDropActive, setIsDropActive] = useState(false)
+  const [isPreviewFocus, setIsPreviewFocus] = useState(false)
   const [newFileName, setNewFileName] = useState("Untitled.md")
+  const sidebar = useSidebarLayout()
   const appLanguage = resolveAppLanguage(languagePreference)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+  const workspaceFrameStyle: WorkspaceFrameStyle = {
+    "--sidebar-width": `${sidebar.width}px`,
+  }
 
   useEffect(() => {
     applyThemePreference(themePreference)
@@ -60,17 +84,39 @@ export function App() {
     saveLanguagePreference(languagePreference)
   }, [languagePreference])
 
-  function openCreateFileDialog(): void {
-    setNewFileName("Untitled.md")
+  function openCreateDialog(kind: CreateDialogKindType): void {
+    setCreateDialogKind(kind)
+    setNewFileName(kind === CreateDialogKind.File ? "Untitled.md" : "")
     setIsCreateFileOpen(true)
   }
 
-  function submitCreateFile(): void {
+  function openUpdateHistory(): void {
+    markUpdateHistorySeen(APP_VERSION)
+    setHasUnseenUpdate(false)
+    setIsUpdateHistoryOpen(true)
+  }
+
+  function submitCreate(): void {
     const trimmedName = newFileName.trim()
-    if (trimmedName.length === 0) {
+    if (!isCreateDialogNameValid(createDialogKind, trimmedName)) {
       return
     }
-    void workspace.createFile(trimmedName).then(() => setIsCreateFileOpen(false))
+
+    if (createDialogKind === CreateDialogKind.File) {
+      void workspace.createFile(trimmedName).then((outcome) => {
+        if (outcome.kind === "success") {
+          setIsCreateFileOpen(false)
+        }
+      })
+      return
+    }
+
+    void workspace.createFolder(trimmedName).then((outcome) => {
+      if (outcome.kind === "success") {
+        workspace.showBrowser()
+        setIsCreateFileOpen(false)
+      }
+    })
   }
 
   function handleDragEnter(event: DragEvent<HTMLDivElement>): void {
@@ -117,7 +163,7 @@ export function App() {
 
   return (
     <div
-      className={`app-shell screen-${workspace.screen}`}
+      className={`app-shell screen-${workspace.screen}${isPreviewFocus ? " preview-focus" : ""}`}
       role="application"
       aria-label={t("appAriaLabel")}
       onDragEnter={handleDragEnter}
@@ -127,17 +173,21 @@ export function App() {
     >
       <AppTopbar
         appLanguage={appLanguage}
+        lastBackupAt={workspace.lastBackupAt}
         languagePreference={languagePreference}
         storagePersisted={workspace.storagePersisted}
         themePreference={themePreference}
+        isUpdateHistoryOpen={isUpdateHistoryOpen}
+        isUpdateHistoryUnseen={hasUnseenUpdate}
         onLanguagePreferenceChange={setLanguagePreference}
         onThemePreferenceChange={setThemePreference}
-        onCreateFolder={workspace.createFolder}
-        onCreateFile={openCreateFileDialog}
+        onCreateFolder={() => openCreateDialog(CreateDialogKind.Folder)}
+        onCreateFile={() => openCreateDialog(CreateDialogKind.File)}
         onImportDocument={() => documentInputRef.current?.click()}
         onImportWorkspace={() => workspaceInputRef.current?.click()}
         onExportWorkspace={workspace.exportWorkspace}
         onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenUpdateHistory={openUpdateHistory}
       />
 
       {workspace.errorMessage !== null ? (
@@ -150,18 +200,51 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="workspace-frame">
+      <main
+        className={sidebar.isCollapsed ? "workspace-frame sidebar-collapsed" : "workspace-frame"}
+        style={workspaceFrameStyle}
+      >
         <aside className="sidebar" aria-label={t("workspaceFiles")}>
-          <FileTree workspace={workspace} appLanguage={appLanguage} />
+          <FileTree
+            workspace={workspace}
+            appLanguage={appLanguage}
+            onCollapseSidebar={sidebar.collapse}
+          />
         </aside>
+        <hr
+          className="sidebar-resize-handle"
+          aria-label={t("resizeSidebar")}
+          aria-orientation="vertical"
+          aria-valuemin={232}
+          aria-valuemax={340}
+          aria-valuenow={sidebar.width}
+          tabIndex={0}
+          onPointerDown={sidebar.beginResize}
+          onKeyDown={sidebar.resizeWithKeyboard}
+        />
         <section className="document-region">
-          <DocumentPane workspace={workspace} appLanguage={appLanguage} />
+          <DocumentPane
+            key={workspace.selectedNode?.id ?? "empty-document"}
+            workspace={workspace}
+            appLanguage={appLanguage}
+            isSidebarCollapsed={sidebar.isCollapsed}
+            onExpandSidebar={sidebar.expand}
+            onPreviewFocusChange={setIsPreviewFocus}
+          />
         </section>
       </main>
       {isDropActive ? (
         <div className="drop-overlay" aria-hidden="true">
           <div className="drop-overlay-surface">{t("dropFilesToImport")}</div>
         </div>
+      ) : null}
+      {workspace.pendingDeletionCount > 0 ? (
+        <UndoToast
+          appLanguage={appLanguage}
+          count={workspace.pendingDeletionCount}
+          onDismiss={workspace.dismissPendingDeletion}
+          onUndo={workspace.undoPendingDeletion}
+        />
       ) : null}
 
       <input
@@ -195,14 +278,21 @@ export function App() {
       {isHelpOpen ? (
         <HelpDialog appLanguage={appLanguage} onClose={() => setIsHelpOpen(false)} />
       ) : null}
+      {isUpdateHistoryOpen ? (
+        <UpdateHistoryDialog
+          appLanguage={appLanguage}
+          onClose={() => setIsUpdateHistoryOpen(false)}
+        />
+      ) : null}
       {isCreateFileOpen ? (
         <CreateFileDialog
           appLanguage={appLanguage}
           inputRef={newFileInputRef}
+          kind={createDialogKind}
           name={newFileName}
           onNameChange={setNewFileName}
           onCancel={() => setIsCreateFileOpen(false)}
-          onCreate={submitCreateFile}
+          onCreate={submitCreate}
         />
       ) : null}
     </div>

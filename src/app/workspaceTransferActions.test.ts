@@ -55,6 +55,14 @@ function createMemoryRepository(initialNodes: readonly WorkspaceNode[]): Workspa
     listNodes: async () => nodes,
     listDocuments: async () => documents,
     getDocument: async (id) => documents.find((document) => document.id === id) ?? null,
+    createItem: async (item) => ({
+      id: item.id,
+      parentId: null,
+      kind: item.kind,
+      name: item.baseName,
+      createdAt: item.createdAt,
+      updatedAt: item.createdAt,
+    }),
     saveNode: async (node) => {
       nodes = [...nodes.filter((item) => item.id !== node.id), node]
     },
@@ -64,6 +72,10 @@ function createMemoryRepository(initialNodes: readonly WorkspaceNode[]): Workspa
     deleteNode: async (id) => {
       nodes = nodes.filter((node) => node.id !== id)
       documents = documents.filter((document) => document.id !== id)
+    },
+    restoreSnapshot: async (snapshot) => {
+      nodes = [...nodes, ...snapshot.nodes]
+      documents = [...documents, ...snapshot.documents]
     },
     importSnapshot: async (snapshot: WorkspaceSnapshot) => {
       nodes = [...snapshot.nodes]

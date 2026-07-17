@@ -1,31 +1,24 @@
-import {
-  CircleHelp,
-  Download,
-  FileInput,
-  FilePlus2,
-  FolderPlus,
-  Monitor,
-  Moon,
-  Settings,
-  Sun,
-  Upload,
-} from "lucide-react"
-import { useState } from "react"
+import { History, Monitor, Moon, Settings, Sun } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { APP_VERSION } from "../app/appVersion"
 import {
   type AppLanguage,
+  formatBackupTime,
   type LanguagePreference,
   LanguagePreference as LanguagePreferenceValue,
   translate,
 } from "../app/i18n"
 import { ThemePreference } from "../app/theme"
-
-export const APP_VERSION = "v1.5"
+import { TopbarActions } from "./TopbarActions"
 
 type AppTopbarProps = {
   readonly appLanguage: AppLanguage
   readonly languagePreference: LanguagePreference
   readonly storagePersisted: boolean
+  readonly lastBackupAt: number | null
   readonly themePreference: ThemePreference
+  readonly isUpdateHistoryOpen: boolean
+  readonly isUpdateHistoryUnseen: boolean
   readonly onLanguagePreferenceChange: (preference: LanguagePreference) => void
   readonly onThemePreferenceChange: (preference: ThemePreference) => void
   readonly onCreateFolder: () => void
@@ -34,13 +27,17 @@ type AppTopbarProps = {
   readonly onImportWorkspace: () => void
   readonly onExportWorkspace: () => void
   readonly onOpenHelp: () => void
+  readonly onOpenUpdateHistory: () => void
 }
 
 export function AppTopbar({
   appLanguage,
   languagePreference,
   storagePersisted,
+  lastBackupAt,
   themePreference,
+  isUpdateHistoryOpen,
+  isUpdateHistoryUnseen,
   onLanguagePreferenceChange,
   onThemePreferenceChange,
   onCreateFolder,
@@ -49,9 +46,29 @@ export function AppTopbar({
   onImportWorkspace,
   onExportWorkspace,
   onOpenHelp,
+  onOpenUpdateHistory,
 }: AppTopbarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [shouldRestoreUpdateHistoryFocus, setShouldRestoreUpdateHistoryFocus] = useState(false)
+  const updateHistoryTriggerRef = useRef<HTMLButtonElement>(null)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
+
+  useEffect(() => {
+    if (isUpdateHistoryOpen || !shouldRestoreUpdateHistoryFocus) {
+      return
+    }
+
+    setIsSettingsOpen(true)
+  }, [isUpdateHistoryOpen, shouldRestoreUpdateHistoryFocus])
+
+  useEffect(() => {
+    if (isUpdateHistoryOpen || !shouldRestoreUpdateHistoryFocus || !isSettingsOpen) {
+      return
+    }
+
+    updateHistoryTriggerRef.current?.focus()
+    setShouldRestoreUpdateHistoryFocus(false)
+  }, [isSettingsOpen, isUpdateHistoryOpen, shouldRestoreUpdateHistoryFocus])
 
   return (
     <header className="topbar">
@@ -66,62 +83,15 @@ export function AppTopbar({
           </span>
         </div>
       </div>
-      <div className="toolbar-group">
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onCreateFolder}
-          aria-label={t("folder")}
-        >
-          <FolderPlus size={17} aria-hidden="true" />
-          <span>{t("folder")}</span>
-        </button>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onCreateFile}
-          aria-label={t("file")}
-        >
-          <FilePlus2 size={17} aria-hidden="true" />
-          <span>{t("file")}</span>
-        </button>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onImportDocument}
-          aria-label={t("importFile")}
-        >
-          <FileInput size={17} aria-hidden="true" />
-          <span>{t("importFile")}</span>
-        </button>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onImportWorkspace}
-          aria-label={t("importBackup")}
-        >
-          <Download size={17} aria-hidden="true" />
-          <span>{t("importBackup")}</span>
-        </button>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onExportWorkspace}
-          aria-label={t("backup")}
-        >
-          <Upload size={17} aria-hidden="true" />
-          <span>{t("backup")}</span>
-        </button>
-        <button
-          className="toolbar-button"
-          type="button"
-          onClick={onOpenHelp}
-          aria-label={t("quickGuide")}
-        >
-          <CircleHelp size={17} aria-hidden="true" />
-          <span>{t("guide")}</span>
-        </button>
-      </div>
+      <TopbarActions
+        appLanguage={appLanguage}
+        onCreateFolder={onCreateFolder}
+        onCreateFile={onCreateFile}
+        onImportDocument={onImportDocument}
+        onImportWorkspace={onImportWorkspace}
+        onExportWorkspace={onExportWorkspace}
+        onOpenHelp={onOpenHelp}
+      />
       <div className="topbar-controls">
         <div className="settings-anchor">
           <button
@@ -196,7 +166,26 @@ export function AppTopbar({
                 </div>
               </fieldset>
               <div className="settings-version">
-                <span>{APP_VERSION}</span>
+                <span>
+                  {t("lastBackup")}: {formatBackupTime(lastBackupAt, appLanguage)}
+                </span>
+                <button
+                  ref={updateHistoryTriggerRef}
+                  className="settings-update-history"
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsOpen(false)
+                    setShouldRestoreUpdateHistoryFocus(true)
+                    onOpenUpdateHistory()
+                  }}
+                  aria-label={t("updateHistory")}
+                >
+                  <History size={15} aria-hidden="true" />
+                  <span>{APP_VERSION}</span>
+                  {isUpdateHistoryUnseen ? (
+                    <span className="settings-update-badge">{t("newUpdate")}</span>
+                  ) : null}
+                </button>
               </div>
             </div>
           ) : null}

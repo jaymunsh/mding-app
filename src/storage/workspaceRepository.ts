@@ -1,4 +1,4 @@
-import type { IDBPDatabase } from "idb"
+import { getFolderTarget, uniqueName } from "../domain/tree"
 import type { WorkspaceSnapshot } from "../domain/workspace"
 import {
   createNodeId,
@@ -8,8 +8,10 @@ import {
   type WorkspaceDocument,
   WorkspaceDocumentSchema,
   type WorkspaceNode,
+  WorkspaceNodeSchema,
+  WorkspaceSnapshotSchema,
 } from "../domain/workspace"
-import { type MdingDatabase, openWorkspaceDatabase } from "./database"
+import { openWorkspaceDatabase } from "./database"
 import { ABOUT_US_HTML, WELCOME_MARKDOWN } from "./sampleWorkspace"
 
 let seedWorkspacePromise: Promise<void> | null = null
@@ -19,20 +21,53 @@ export type WorkspaceRepository = {
   readonly listNodes: () => Promise<readonly WorkspaceNode[]>
   readonly listDocuments: () => Promise<readonly WorkspaceDocument[]>
   readonly getDocument: (id: NodeId) => Promise<WorkspaceDocument | null>
+  readonly createItem: (item: WorkspaceItemToCreate) => Promise<WorkspaceNode>
   readonly saveNode: (node: WorkspaceNode) => Promise<void>
   readonly saveDocument: (document: WorkspaceDocument) => Promise<void>
   readonly deleteNode: (id: NodeId) => Promise<void>
+  readonly restoreSnapshot: (snapshot: WorkspaceSnapshot) => Promise<void>
   readonly importSnapshot: (snapshot: WorkspaceSnapshot) => Promise<void>
 }
 
-export function createWorkspaceRepository(): WorkspaceRepository {
-  return new IndexedDbWorkspaceRepository(openWorkspaceDatabase)
+export type WorkspaceItemToCreate = {
+  readonly id: NodeId
+  readonly selectedId: NodeId | null
+  readonly kind: NodeKind
+  readonly baseName: string
+  readonly createdAt: number
+}
+
+type WorkspaceTransaction = {
+  readonly listNodes: () => Promise<WorkspaceNode[]>
+  readonly saveNode: (node: WorkspaceNode) => Promise<void>
+  readonly saveDocument: (document: WorkspaceDocument) => Promise<void>
+  readonly deleteNode: (id: NodeId) => Promise<void>
+  readonly deleteDocument: (id: NodeId) => Promise<void>
+  readonly clearNodes: () => Promise<void>
+  readonly clearDocuments: () => Promise<void>
+  readonly done: Promise<void>
+}
+
+export type WorkspaceDatabase = {
+  readonly countNodes: () => Promise<number>
+  readonly listNodes: () => Promise<WorkspaceNode[]>
+  readonly listDocuments: () => Promise<WorkspaceDocument[]>
+  readonly getDocument: (id: NodeId) => Promise<WorkspaceDocument | undefined>
+  readonly saveNode: (node: WorkspaceNode) => Promise<void>
+  readonly saveDocument: (document: WorkspaceDocument) => Promise<void>
+  readonly createReadWriteTransaction: () => WorkspaceTransaction
+}
+
+export function createWorkspaceRepository(
+  openDatabase: () => Promise<WorkspaceDatabase> = openWorkspaceDatabaseAdapter,
+): WorkspaceRepository {
+  return new IndexedDbWorkspaceRepository(openDatabase)
 }
 
 class IndexedDbWorkspaceRepository implements WorkspaceRepository {
-  readonly #openDatabase: () => Promise<IDBPDatabase<MdingDatabase>>
+  readonly #openDatabase: () => Promise<WorkspaceDatabase>
 
-  constructor(openDatabase: () => Promise<IDBPDatabase<MdingDatabase>>) {
+  constructor(openDatabase: () => Promise<WorkspaceDatabase>) {
     this.#openDatabase = openDatabase
   }
 
@@ -47,7 +82,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
 
   async #seedIfEmptyOnce(): Promise<void> {
     const database = await this.#openDatabase()
-    const count = await database.count("nodes")
+    const count = await database.countNodes()
     if (count > 0) {
       return
     }
@@ -62,6 +97,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       name: "markdown-example.md",
       createdAt: now,
       updatedAt: now,
+      pinned: false,
     }
     const htmlNode = {
       id: htmlId,
@@ -70,6 +106,7 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       name: "about-mding.html",
       createdAt: now,
       updatedAt: now,
+      pinned: false,
     }
     const welcomeDocument = {
       id: welcomeId,
@@ -84,60 +121,144 @@ class IndexedDbWorkspaceRepository implements WorkspaceRepository {
       updatedAt: now,
     }
 
-    const transaction = database.transaction(["nodes", "documents"], "readwrite")
-    await transaction.objectStore("nodes").put(welcomeNode)
-    await transaction.objectStore("nodes").put(htmlNode)
-    await transaction.objectStore("documents").put(welcomeDocument)
-    await transaction.objectStore("documents").put(htmlDocument)
+    const transaction = database.createReadWriteTransaction()
+    await transaction.saveNode(welcomeNode)
+    await transaction.saveNode(htmlNode)
+    await transaction.saveDocument(welcomeDocument)
+    await transaction.saveDocument(htmlDocument)
     await transaction.done
   }
 
   async listNodes(): Promise<readonly WorkspaceNode[]> {
     const database = await this.#openDatabase()
-    return database.getAll("nodes")
+    const nodes = await database.listNodes()
+    return nodes.map((node) => WorkspaceNodeSchema.parse(node))
   }
 
   async listDocuments(): Promise<readonly WorkspaceDocument[]> {
     const database = await this.#openDatabase()
-    const documents = await database.getAll("documents")
+    const documents = await database.listDocuments()
     return documents.map((document) => WorkspaceDocumentSchema.parse(document))
   }
 
   async getDocument(id: NodeId): Promise<WorkspaceDocument | null> {
     const database = await this.#openDatabase()
-    const document = await database.get("documents", id)
+    const document = await database.getDocument(id)
     return document === undefined ? null : WorkspaceDocumentSchema.parse(document)
+  }
+
+  async createItem(item: WorkspaceItemToCreate): Promise<WorkspaceNode> {
+    const database = await this.#openDatabase()
+    const transaction = database.createReadWriteTransaction()
+    const nodes = await transaction.listNodes()
+    const parentId = getFolderTarget(nodes, item.selectedId)
+    const node = {
+      id: item.id,
+      parentId,
+      kind: item.kind,
+      name: uniqueName(nodes, parentId, item.baseName),
+      createdAt: item.createdAt,
+      updatedAt: item.createdAt,
+    }
+
+    await transaction.saveNode(node)
+    if (item.kind === NodeKind.File) {
+      await transaction.saveDocument({
+        id: item.id,
+        markdown: "",
+        format: DocumentFormat.Markdown,
+        updatedAt: item.createdAt,
+      })
+    }
+    await transaction.done
+    return node
   }
 
   async saveNode(node: WorkspaceNode): Promise<void> {
     const database = await this.#openDatabase()
-    await database.put("nodes", node)
+    await database.saveNode(WorkspaceNodeSchema.parse(node))
   }
 
   async saveDocument(document: WorkspaceDocument): Promise<void> {
     const database = await this.#openDatabase()
-    await database.put("documents", document)
+    await database.saveDocument(document)
   }
 
   async deleteNode(id: NodeId): Promise<void> {
     const database = await this.#openDatabase()
-    const transaction = database.transaction(["nodes", "documents"], "readwrite")
-    await transaction.objectStore("nodes").delete(id)
-    await transaction.objectStore("documents").delete(id)
+    const transaction = database.createReadWriteTransaction()
+    await transaction.deleteNode(id)
+    await transaction.deleteDocument(id)
+    await transaction.done
+  }
+
+  async restoreSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
+    const normalizedSnapshot = WorkspaceSnapshotSchema.parse(snapshot)
+    const database = await this.#openDatabase()
+    const transaction = database.createReadWriteTransaction()
+    for (const node of normalizedSnapshot.nodes) {
+      await transaction.saveNode(node)
+    }
+    for (const document of normalizedSnapshot.documents) {
+      await transaction.saveDocument(document)
+    }
     await transaction.done
   }
 
   async importSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
+    const normalizedSnapshot = WorkspaceSnapshotSchema.parse(snapshot)
     const database = await this.#openDatabase()
-    const transaction = database.transaction(["nodes", "documents"], "readwrite")
-    await transaction.objectStore("nodes").clear()
-    await transaction.objectStore("documents").clear()
-    for (const node of snapshot.nodes) {
-      await transaction.objectStore("nodes").put(node)
+    const transaction = database.createReadWriteTransaction()
+    await transaction.clearNodes()
+    await transaction.clearDocuments()
+    for (const node of normalizedSnapshot.nodes) {
+      await transaction.saveNode(node)
     }
-    for (const document of snapshot.documents) {
-      await transaction.objectStore("documents").put(document)
+    for (const document of normalizedSnapshot.documents) {
+      await transaction.saveDocument(document)
     }
     await transaction.done
+  }
+}
+
+async function openWorkspaceDatabaseAdapter(): Promise<WorkspaceDatabase> {
+  const database = await openWorkspaceDatabase()
+
+  return {
+    countNodes: async () => database.count("nodes"),
+    listNodes: async () => database.getAll("nodes"),
+    listDocuments: async () => database.getAll("documents"),
+    getDocument: async (id) => database.get("documents", id),
+    saveNode: async (node) => {
+      await database.put("nodes", node)
+    },
+    saveDocument: async (document) => {
+      await database.put("documents", document)
+    },
+    createReadWriteTransaction: () => {
+      const transaction = database.transaction(["nodes", "documents"], "readwrite")
+      return {
+        listNodes: async () => transaction.objectStore("nodes").getAll(),
+        saveNode: async (node) => {
+          await transaction.objectStore("nodes").put(node)
+        },
+        saveDocument: async (document) => {
+          await transaction.objectStore("documents").put(document)
+        },
+        deleteNode: async (id) => {
+          await transaction.objectStore("nodes").delete(id)
+        },
+        deleteDocument: async (id) => {
+          await transaction.objectStore("documents").delete(id)
+        },
+        clearNodes: async () => {
+          await transaction.objectStore("nodes").clear()
+        },
+        clearDocuments: async () => {
+          await transaction.objectStore("documents").clear()
+        },
+        done: transaction.done,
+      }
+    },
   }
 }

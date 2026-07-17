@@ -13,6 +13,7 @@ type HtmlPreviewProps = {
   readonly zoom: number
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
   readonly onSearchResultChange: (count: number, activeIndex: number) => void
+  readonly onScrollDirectionChange: (direction: "up" | "down") => void
 }
 
 type HtmlPreviewState = {
@@ -29,6 +30,7 @@ export function HtmlPreview({
   zoom,
   onReadingProgressChange,
   onSearchResultChange,
+  onScrollDirectionChange,
 }: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -114,6 +116,11 @@ export function HtmlPreview({
       const searchResult = parseHtmlSearchResultMessage(event.data)
       if (searchResult !== null) {
         onSearchResultChange(searchResult.count, searchResult.activeIndex)
+        return
+      }
+      const scrollDirection = parseHtmlScrollDirectionMessage(event.data)
+      if (scrollDirection !== null) {
+        onScrollDirectionChange(scrollDirection)
       }
     }
 
@@ -125,7 +132,7 @@ export function HtmlPreview({
         onReadingProgressChange(documentId, finalRatio)
       }
     }
-  }, [documentId, onReadingProgressChange, onSearchResultChange])
+  }, [documentId, onReadingProgressChange, onScrollDirectionChange, onSearchResultChange])
 
   return (
     <iframe
@@ -136,6 +143,16 @@ export function HtmlPreview({
       srcDoc={preview.srcDoc}
     />
   )
+}
+
+function parseHtmlScrollDirectionMessage(data: unknown): "up" | "down" | null {
+  if (typeof data !== "object" || data === null || !("type" in data) || !("direction" in data)) {
+    return null
+  }
+  if (data.type !== "mding:html-scroll-direction") {
+    return null
+  }
+  return data.direction === "up" || data.direction === "down" ? data.direction : null
 }
 
 export function parseHtmlReadingProgressMessage(data: unknown): number | null {

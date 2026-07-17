@@ -105,6 +105,15 @@ All spacing derives from 4px.
 - **Accessibility**: every icon-only button has an aria-label.
 - **Motion**: 120ms color and transform feedback.
 
+### Toolbar Overflow
+
+- **Structure**: icon trigger with a compact list of secondary toolbar commands.
+- **Variants**: hidden at wide desktop widths, visible when toolbar labels no longer fit.
+- **Spacing**: --space-2 menu padding and --space-1 item gap.
+- **States**: closed, open, hover, focus.
+- **Accessibility**: trigger exposes expanded state and every menu item keeps its full command label.
+- **Motion**: opacity and transform entry over 120ms.
+
 ### Theme Switcher
 
 - **Structure**: compact fieldset with system, light, and dark icon buttons.
@@ -123,6 +132,24 @@ All spacing derives from 4px.
 - **Accessibility**: tree rows are keyboard reachable buttons.
 - **Motion**: selected state changes color only.
 
+### Contextual Manage Bar
+
+- **Structure**: normal Manage trigger; selection count, move, delete, and Done actions only in manage mode.
+- **Variants**: idle, managing-empty, managing-selected, choosing-move-target.
+- **Spacing**: --space-2 gaps with --space-3 panel padding.
+- **States**: default, selected, disabled, destructive.
+- **Accessibility**: selected count is announced as status text and actions remain keyboard reachable.
+- **Motion**: mode entry uses opacity only.
+
+### Sidebar Resize Handle
+
+- **Structure**: fine vertical drag target between the file tree and document pane.
+- **Variants**: idle, hover, dragging, collapsed.
+- **Spacing**: visual rule stays 1px while the pointer target is 8px wide.
+- **States**: default, focus, active.
+- **Accessibility**: pointer resizing is supplemented by collapse and expand buttons.
+- **Motion**: no animated width changes while dragging.
+
 ### Document Pane
 
 - **Structure**: header, mode toolbar, scrollable body.
@@ -131,6 +158,15 @@ All spacing derives from 4px.
 - **States**: clean, dirty, saving, error, empty.
 - **Accessibility**: editor textarea has an explicit label and preserves tab order.
 - **Motion**: mode changes crossfade over 120ms.
+
+### Undo Toast
+
+- **Structure**: short message, Undo action, and dismiss action in an elevated status surface.
+- **Variants**: single item and multiple item deletion.
+- **Spacing**: --space-3 inline padding and --space-2 action gap.
+- **States**: visible, dismissed, restored.
+- **Accessibility**: polite live region with explicit labelled actions.
+- **Motion**: opacity and translate entry over 180ms.
 
 ### Markdown Preview
 
@@ -162,6 +198,7 @@ All spacing derives from 4px.
 - Animate only opacity and transform.
 - Respect `prefers-reduced-motion`.
 - Hover states must communicate affordance; no decorative motion.
+- On mobile document screens, scrolling down condenses the document header; scrolling up restores it.
 
 ## 7. Depth & Surface
 

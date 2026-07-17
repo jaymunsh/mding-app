@@ -1,10 +1,15 @@
 import {
+  Ban,
   CircleHelp,
   Download,
   FileInput,
   FilePlus2,
+  FolderInput,
   FolderPlus,
   type LucideIcon,
+  Maximize2,
+  PencilOff,
+  Pin,
   Settings,
   Upload,
   X,
@@ -27,6 +32,18 @@ const toolbarGuideItems: readonly {
   { icon: Upload, textKey: "helpToolbar5" },
   { icon: CircleHelp, textKey: "helpToolbar6" },
   { icon: Settings, textKey: "helpToolbar7" },
+] as const
+
+const workspaceGuideItems: readonly {
+  readonly icon: LucideIcon
+  readonly textKey: TranslationKey
+}[] = [
+  { icon: Pin, textKey: "helpWorkspace1" },
+  { icon: FilePlus2, textKey: "helpWorkspace2" },
+  { icon: FolderInput, textKey: "helpWorkspace3" },
+  { icon: Maximize2, textKey: "helpWorkspace4" },
+  { icon: Ban, textKey: "helpWorkspace5" },
+  { icon: PencilOff, textKey: "helpWorkspace6" },
 ] as const
 
 export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
@@ -52,6 +69,19 @@ export function HelpDialog({ appLanguage, onClose }: HelpDialogProps) {
             <h3>{t("helpToolbarTitle")}</h3>
             <ul className="help-toolbar-list">
               {toolbarGuideItems.map(({ icon: Icon, textKey }) => (
+                <li className="help-toolbar-item" key={textKey}>
+                  <span className="help-toolbar-icon">
+                    <Icon size={14} aria-hidden="true" />
+                  </span>
+                  <span>{t(textKey)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="help-section">
+            <h3>{t("helpWorkspaceTitle")}</h3>
+            <ul className="help-toolbar-list">
+              {workspaceGuideItems.map(({ icon: Icon, textKey }) => (
                 <li className="help-toolbar-item" key={textKey}>
                   <span className="help-toolbar-icon">
                     <Icon size={14} aria-hidden="true" />
