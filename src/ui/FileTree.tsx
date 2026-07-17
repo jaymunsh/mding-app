@@ -1,10 +1,20 @@
-import { Check, FolderInput, PanelLeftClose, Pencil, Trash2, Undo2, X } from "lucide-react"
+import {
+  Check,
+  FolderInput,
+  PanelLeftClose,
+  Pencil,
+  Pin,
+  PinOff,
+  Trash2,
+  Undo2,
+  X,
+} from "lucide-react"
 import { type DragEvent, useEffect, useMemo, useRef, useState } from "react"
 import { type AppLanguage, translate } from "../app/i18n"
 import type { WorkspaceController } from "../app/workspaceController"
 import { assertNever } from "../domain/result"
 import { buildTree, TreeSortOrder } from "../domain/tree"
-import type { NodeId, TreeNode } from "../domain/workspace"
+import { type NodeId, NodeKind, type TreeNode } from "../domain/workspace"
 import {
   type DragTargetId,
   FileTreeRow,
@@ -40,6 +50,11 @@ export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTree
   const draggedTreeNodes = findTreeNodes(tree, draggedNodeIds)
   const canDropToRoot = canMoveToRoot(draggedNodeIds, draggedTreeNodes)
   const managedSelectionCount = managedSelectedTreeNodes.length
+  const canPinSelection =
+    managedSelectionCount > 0 &&
+    managedSelectedTreeNodes.every((node) => node.kind === NodeKind.File)
+  const shouldUnpinSelection =
+    canPinSelection && managedSelectedTreeNodes.every((node) => node.pinned === true)
   const sortLabel =
     sortOrder === TreeSortOrder.Updated
       ? translate(appLanguage, "latest")
@@ -148,9 +163,6 @@ export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTree
       ),
     onMoveDone: resetManageMode,
     onManageSelectionChange: () => setRenameText(""),
-    onTogglePin: (id, pinned) => {
-      void workspace.setFilePinned?.(id, pinned)
-    },
     onDragStart: setDraggedNodeIds,
     onDragEnd: resetDrag,
     onDragTargetChange: setDragTargetId,
@@ -253,6 +265,28 @@ export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTree
         <div className="move-target-bar">
           <button
             type="button"
+            disabled={!canPinSelection}
+            onClick={() => {
+              const setFilePinned = workspace.setFilePinned
+              if (setFilePinned === undefined) {
+                return
+              }
+              void Promise.all(
+                managedSelectedTreeNodes.map((node) =>
+                  setFilePinned(node.id, !shouldUnpinSelection),
+                ),
+              ).then(resetManageMode)
+            }}
+          >
+            {shouldUnpinSelection ? (
+              <PinOff size={15} aria-hidden="true" />
+            ) : (
+              <Pin size={15} aria-hidden="true" />
+            )}
+            {translate(appLanguage, shouldUnpinSelection ? "unpinFile" : "pinFile")}
+          </button>
+          <button
+            type="button"
             onClick={() => {
               void workspace.moveNodesToRoot(managedSelectionIds).then((outcome) => {
                 if (outcome.kind === "success") {
@@ -269,10 +303,6 @@ export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTree
             {translate(appLanguage, "cancel")}
           </button>
         </div>
-      ) : null}
-
-      {isChoosingMoveTarget ? (
-        <div className="tree-status">{translate(appLanguage, "moveChooseFolderSuffix")}</div>
       ) : null}
 
       {isManaging && managedSelectionCount === 1 ? (

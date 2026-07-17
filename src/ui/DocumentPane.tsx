@@ -125,11 +125,7 @@ export function DocumentPane({
   }
 
   return (
-    <section
-      className={navigation.isHeaderCondensed ? "document-pane header-condensed" : "document-pane"}
-      aria-label={t("document")}
-      onScrollCapture={navigation.handleScrollCapture}
-    >
+    <section className="document-pane" aria-label={t("document")}>
       {!workspace.isEditing ? (
         <div
           className="document-edge-swipe-zone"
@@ -258,7 +254,6 @@ export function DocumentPane({
           zoom={previewZoom}
           onReadingProgressChange={handleReadingProgressChange}
           onSearchResultChange={handleSearchResultChange}
-          onScrollDirectionChange={navigation.handleHtmlScrollDirection}
         />
       )}
     </section>

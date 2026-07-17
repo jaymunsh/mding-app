@@ -66,20 +66,34 @@ describe("FileTree pinned shortcuts", () => {
     expect(rowNames(container, ".workspace-tree-section")).toEqual(["Alpha.md", "Zeta.md"])
   })
 
-  it("uses a file-only contextual control for pinning and opens shortcut rows", async () => {
+  it("pins selected files from the move target bar and opens shortcut rows", async () => {
     // Given
     const folder = node(NodeKind.Folder, "Notes", null, 1)
     const fileNode = node(NodeKind.File, "Draft.md", folder.id, 2)
     const pinnedNode = node(NodeKind.File, "Pinned.md", null, 3, true)
     const workspace = createWorkspace([folder, fileNode, pinnedNode])
     const container = renderTree(workspace, "en")
-    const fileRow = container.querySelector(`.tree-row[data-node-id="${fileNode.id}"]`)
-    const pinButton = fileRow?.parentElement?.querySelector(".tree-row-pin-control")
-    if (!(pinButton instanceof HTMLButtonElement)) {
-      throw new Error("Missing file pin control")
-    }
-
     // When
+    const manageButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Manage",
+    )
+    act(() => manageButton?.click())
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>(`.tree-row[data-node-id="${fileNode.id}"]`)
+        ?.click()
+    })
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('.manage-context-bar button[aria-label="Move"]')
+        ?.click()
+    })
+    const pinButton = Array.from(container.querySelectorAll(".move-target-bar button")).find(
+      (button) => button.textContent === "Pin file",
+    )
+    if (!(pinButton instanceof HTMLButtonElement)) {
+      throw new Error("Missing move target pin control")
+    }
     await act(async () => {
       pinButton.click()
       await Promise.resolve()

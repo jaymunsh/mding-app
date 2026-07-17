@@ -56,7 +56,8 @@ const englishMessages = {
   helpToolbar4: "Import backup restores an mding backup zip by reading its manifest.json.",
   helpToolbar5: "Backup downloads the whole workspace as a restoreable zip file.",
   helpToolbar6: "Guide opens this help.",
-  helpToolbar7: "Settings controls theme, language, and version.",
+  helpToolbar7:
+    "Settings controls theme, language, version history, and confirmed workspace clearing.",
   helpToolbarTitle: "Top buttons",
   helpBackup1: "Workspace data is stored in this browser or installed PWA.",
   helpBackup2:
@@ -73,13 +74,13 @@ const englishMessages = {
     "The app remembers each document's last reading position locally and shows a small percent in the file list.",
   helpPreviewTitle: "Preview",
   helpWorkspace1:
-    "Pin files from their row; pinned shortcuts appear above the workspace without moving the original.",
+    "Select files in Manage, open Move, then use Pin; pinned shortcuts appear in a separate workspace section without moving the originals.",
   helpWorkspace2:
     "Use Folder or File, enter a name, and `.md` is added to Markdown files when omitted.",
   helpWorkspace3:
     "Drag a file onto a folder or the root target; the target highlights before drop and a success message appears only after the move is saved.",
   helpWorkspace4:
-    "Use Focus reading from document tools in preview mode. Escape, Android Back, iOS edge swipe, or the top-center exit button leaves focus before navigation.",
+    "Use Focus reading from document tools in preview mode. Escape, Android Back, iOS edge swipe, or the top-right exit button leaves focus before navigation.",
   helpWorkspace5: "Invalid drops keep the file where it is and show no move-success message.",
   helpWorkspace6: "Focus reading is preview-only; switch out of Edit mode before entering it.",
   helpWorkspaceTitle: "Shortcuts and focus",
@@ -144,6 +145,10 @@ const englishMessages = {
   searchDocument: "Search document",
   searchInDocument: "Search in document...",
   settings: "Settings",
+  clearWorkspace: "Clear workspace",
+  clearWorkspaceHelp: "Delete every local file and folder. App settings are kept.",
+  clearWorkspaceConfirm:
+    "Delete every file and folder in this workspace? You can undo briefly after deletion.",
   system: "System",
   theme: "Theme",
   tryAgain: "Try again",
@@ -213,7 +218,7 @@ const koreanMessages = {
   helpToolbar4: "Import backup은 mding 백업 zip의 manifest.json을 읽어 작업공간을 복원합니다.",
   helpToolbar5: "Backup은 전체 작업공간을 다시 가져올 수 있는 zip 파일로 내려받습니다.",
   helpToolbar6: "Guide는 이 도움말을 엽니다.",
-  helpToolbar7: "Settings는 테마, 언어, 버전을 관리합니다.",
+  helpToolbar7: "설정에서는 테마, 언어, 업데이트 기록과 확인 후 작업공간 전체 삭제를 관리합니다.",
   helpToolbarTitle: "상단 버튼",
   helpBackup1: "작업공간 데이터는 이 브라우저 또는 설치된 PWA에 저장됩니다.",
   helpBackup2:
@@ -230,13 +235,13 @@ const koreanMessages = {
     "문서별 마지막 읽기 위치를 로컬에 기억하고, 파일 목록에는 작은 퍼센트로 표시합니다.",
   helpPreviewTitle: "미리보기",
   helpWorkspace1:
-    "파일 행의 고정 버튼을 누르면 원래 위치는 유지한 채 작업공간 위에 고정 바로가기가 나타납니다.",
+    "관리에서 파일을 선택하고 이동을 연 뒤 고정을 누르세요. 원본 위치는 유지되며 별도의 고정 작업공간에 바로가기가 나타납니다.",
   helpWorkspace2:
     "Folder 또는 File을 누르고 이름을 입력하세요. Markdown 파일은 확장자를 생략하면 `.md`가 자동으로 붙습니다.",
   helpWorkspace3:
     "파일을 폴더나 루트 대상으로 끌면 놓기 전에 대상이 강조되고, 이동 저장이 완료된 뒤에만 성공 메시지가 표시됩니다.",
   helpWorkspace4:
-    "미리보기의 문서 도구에서 집중 읽기를 시작하세요. 상단 가운데 종료 버튼, Esc, Android 뒤로 가기 또는 iOS 가장자리 스와이프로 탐색 전에 집중 읽기를 종료할 수 있습니다.",
+    "미리보기의 문서 도구에서 집중 읽기를 시작하세요. 상단 우측 종료 버튼, Esc, Android 뒤로 가기 또는 iOS 가장자리 스와이프로 탐색 전에 집중 읽기를 종료할 수 있습니다.",
   helpWorkspace5: "잘못된 놓기는 파일을 이동하지 않고 이동 성공 메시지도 표시하지 않습니다.",
   helpWorkspace6: "집중 읽기는 미리보기 전용입니다. 편집 모드에서는 시작할 수 없습니다.",
   helpWorkspaceTitle: "바로가기와 집중 읽기",
@@ -301,6 +306,10 @@ const koreanMessages = {
   searchDocument: "문서 검색",
   searchInDocument: "문서에서 검색...",
   settings: "설정",
+  clearWorkspace: "전체 파일 지우기",
+  clearWorkspaceHelp: "로컬 파일과 폴더를 모두 삭제합니다. 앱 설정은 유지됩니다.",
+  clearWorkspaceConfirm:
+    "이 작업공간의 모든 파일과 폴더를 삭제할까요? 삭제 직후 잠시 실행 취소할 수 있습니다.",
   system: "시스템",
   theme: "테마",
   tryAgain: "다시 시도",

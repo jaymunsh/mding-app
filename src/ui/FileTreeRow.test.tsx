@@ -204,7 +204,6 @@ function createContext(overrides: ContextOverrides = {}): FileTreeRowContext {
     draggedTreeNodes: overrides.draggedTreeNodes ?? [],
     dragTargetId: overrides.dragTargetId ?? null,
     onToggleManagedSelection: vi.fn(),
-    onTogglePin: vi.fn(),
     onMoveDone: overrides.onMoveDone ?? vi.fn(),
     onMoveSuccess: overrides.onMoveSuccess ?? vi.fn(),
     onManageSelectionChange: vi.fn(),

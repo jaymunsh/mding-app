@@ -13,11 +13,13 @@ const currentEnglishRelease = {
   date: "2026-07-18",
   summary: "A more capable local workspace with pinned shortcuts and focused reading.",
   highlights: [
-    "Pin Markdown files as shortcuts without moving them in the workspace tree.",
+    "Select files in Manage and pin them as shortcuts without moving their originals.",
     "Create named Markdown files and folders with validation and automatic `.md` completion.",
     "Drag files to folders or the root with clear destination feedback and success-only move confirmation.",
     "Use preview-only Focus reading for Markdown and HTML with desktop and mobile exit paths.",
-    "Restore deleted items with the five-second Undo action and keep pinned metadata in backups.",
+    "Clear the local workspace from Settings after confirmation, with a brief Undo window.",
+    "Release obsolete iframes, Mermaid SVGs, search state, and asynchronous preview work when switching documents.",
+    "Restore deleted items with Undo and keep pinned metadata in backups.",
     "Use the bilingual Quick Guide, responsive sidebar controls, and compact toolbar overflow on smaller screens.",
   ],
 } as const satisfies ReleaseNote
@@ -27,11 +29,13 @@ const currentKoreanRelease = {
   date: "2026-07-18",
   summary: "고정 바로가기와 집중 읽기를 더한 로컬 작업공간입니다.",
   highlights: [
-    "Markdown 파일을 트리에서 옮기지 않고 바로가기로 고정할 수 있습니다.",
+    "관리 모드에서 파일을 선택해 원래 위치를 유지한 채 고정 바로가기로 만들 수 있습니다.",
     "이름을 검증하고 `.md`를 자동 완성해 Markdown 파일과 폴더를 만들 수 있습니다.",
     "폴더나 루트에 파일을 끌어 놓으면 대상을 표시하고, 이동 성공 시에만 확인합니다.",
     "Markdown과 HTML 미리보기에서 데스크톱과 모바일에서 집중 읽기를 종료할 수 있습니다.",
-    "삭제 후 5초 동안 실행 취소할 수 있고, 백업에 고정 메타데이터도 보존합니다.",
+    "설정에서 확인 후 작업공간 전체를 지우고, 삭제 직후 실행 취소할 수 있습니다.",
+    "문서 전환 시 이전 iframe, Mermaid SVG, 검색 상태와 비동기 렌더링 작업을 정리합니다.",
+    "삭제 후 실행 취소할 수 있고, 백업에 고정 메타데이터도 보존합니다.",
     "한영 빠른 가이드, 반응형 사이드바 조작, 좁은 화면용 도구 모음을 제공합니다.",
   ],
 } as const satisfies ReleaseNote

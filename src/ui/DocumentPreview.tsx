@@ -23,7 +23,6 @@ type DocumentPreviewProps = {
   readonly documentId: string
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
   readonly onSearchResultChange: (count: number, activeIndex: number) => void
-  readonly onScrollDirectionChange: (direction: "up" | "down") => void
   readonly readingProgressRatio: number
   readonly searchIndex: number
   readonly searchQuery: string
@@ -41,7 +40,6 @@ export function DocumentPreview({
   documentId,
   onReadingProgressChange,
   onSearchResultChange,
-  onScrollDirectionChange,
   readingProgressRatio,
   searchIndex,
   searchQuery,
@@ -83,9 +81,10 @@ export function DocumentPreview({
     case DocumentFormat.Html:
       return (
         <article className="html-preview">
-          <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`html:${source}`}>
+          <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`html:${documentId}:${source}`}>
             <Suspense fallback={<p>{t("loadingPreview")}</p>}>
               <HtmlPreview
+                key={documentId}
                 appLanguage={appLanguage}
                 documentId={documentId}
                 html={source}
@@ -95,7 +94,6 @@ export function DocumentPreview({
                 zoom={zoom}
                 onReadingProgressChange={onReadingProgressChange}
                 onSearchResultChange={onSearchResultChange}
-                onScrollDirectionChange={onScrollDirectionChange}
               />
             </Suspense>
           </PreviewErrorBoundary>
@@ -107,10 +105,13 @@ export function DocumentPreview({
     case DocumentFormat.Markdown:
       return (
         <article className="markdown-preview" ref={markdownPreviewRef}>
-          <PreviewErrorBoundary appLanguage={appLanguage} resetKey={`markdown:${zoom}:${source}`}>
+          <PreviewErrorBoundary
+            appLanguage={appLanguage}
+            resetKey={`markdown:${documentId}:${zoom}:${source}`}
+          >
             <div className="markdown-body" style={markdownZoomStyle}>
               <Suspense fallback={<p>{t("loadingPreview")}</p>}>
-                <MarkdownPreview markdown={source} />
+                <MarkdownPreview key={documentId} markdown={source} />
               </Suspense>
             </div>
           </PreviewErrorBoundary>

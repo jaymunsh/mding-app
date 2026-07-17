@@ -1,4 +1,4 @@
-import { ChevronRight, FileCode2, FileText, Folder, Pin, PinOff } from "lucide-react"
+import { ChevronRight, FileCode2, FileText, Folder, Pin } from "lucide-react"
 import { type DragEvent, useState } from "react"
 import { type AppLanguage, formatEditedTime, translate } from "../app/i18n"
 import { formatReadingProgressPercent } from "../app/readingProgress"
@@ -29,7 +29,6 @@ export type FileTreeRowContext = {
   readonly onMoveDone: () => void
   readonly onMoveSuccess?: (destination: MoveDestination) => void
   readonly onManageSelectionChange: () => void
-  readonly onTogglePin?: (id: NodeId, pinned: boolean) => void
   readonly onDragStart: (ids: readonly NodeId[]) => void
   readonly onDragEnd: () => void
   readonly onDragTargetChange: (id: DragTargetId) => void
@@ -48,9 +47,7 @@ export function FileTreeRow({ node, depth, isShortcut = false, context }: FileTr
   const isRootFile = node.kind === NodeKind.File && depth === 0 && !isShortcut
   const hasChildren = node.children.length > 0
   const isManagedSelected = context.managedSelectionIds.includes(node.id)
-  const isPinned = node.kind === NodeKind.File && node.pinned === true
   const canDrag = !context.isChoosingMoveTarget && !isShortcut
-  const showPinControl = node.kind === NodeKind.File && !context.isManaging
   const readingProgressLabel =
     node.kind === NodeKind.File
       ? formatReadingProgressPercent(context.workspace.readingProgress[node.id])
@@ -212,25 +209,6 @@ export function FileTreeRow({ node, depth, isShortcut = false, context }: FileTr
             )}
           </span>
         </button>
-        {showPinControl && !context.isChoosingMoveTarget ? (
-          <button
-            className={isPinned ? "tree-row-pin-control pinned" : "tree-row-pin-control"}
-            type="button"
-            aria-label={translate(context.appLanguage, isPinned ? "unpinFile" : "pinFile")}
-            title={translate(context.appLanguage, isPinned ? "unpinFile" : "pinFile")}
-            aria-pressed={isPinned}
-            onClick={(event) => {
-              event.stopPropagation()
-              context.onTogglePin?.(node.id, !isPinned)
-            }}
-          >
-            {isPinned ? (
-              <PinOff size={15} aria-hidden="true" />
-            ) : (
-              <Pin size={15} aria-hidden="true" />
-            )}
-          </button>
-        ) : null}
       </div>
       {isFolder && expanded && hasChildren ? (
         <div className="tree-children">

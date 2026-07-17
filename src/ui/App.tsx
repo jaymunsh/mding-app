@@ -188,6 +188,13 @@ export function App() {
         onExportWorkspace={workspace.exportWorkspace}
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenUpdateHistory={openUpdateHistory}
+        canClearWorkspace={workspace.nodes.length > 0}
+        onClearWorkspace={() => {
+          const rootNodeIds = workspace.nodes
+            .filter((node) => node.parentId === null)
+            .map((node) => node.id)
+          void workspace.deleteNodes(rootNodeIds)
+        }}
       />
 
       {workspace.errorMessage !== null ? (

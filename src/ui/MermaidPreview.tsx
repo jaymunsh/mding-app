@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 type MermaidApi = typeof import("mermaid").default
 export type MermaidColorMode = "dark" | "light"
 
 let mermaidApiPromise: Promise<MermaidApi> | null = null
+const colorModeSubscribers = new Set<() => void>()
+let stopColorModeObserver: (() => void) | null = null
 
 export function MermaidDiagram({ chart }: { readonly chart: string }) {
   const id = useStableMermaidId()
@@ -12,17 +14,23 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
+    const container = containerRef.current
 
     async function renderDiagram(): Promise<void> {
       try {
-        const svg = await renderMermaidSvg(chart, colorMode, `${id}-${colorMode}`)
-        if (!cancelled && containerRef.current !== null) {
+        const svg = await renderMermaidSvg(
+          chart,
+          colorMode,
+          `${id}-${colorMode}`,
+          controller.signal,
+        )
+        if (!controller.signal.aborted && containerRef.current !== null) {
           containerRef.current.innerHTML = svg
           setErrorMessage(null)
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setErrorMessage(messageFromError(error))
         }
       }
@@ -31,7 +39,8 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
     void renderDiagram()
 
     return () => {
-      cancelled = true
+      controller.abort()
+      container?.replaceChildren()
     }
   }, [chart, colorMode, id])
 
@@ -52,10 +61,14 @@ export async function renderMermaidSvg(
   chart: string,
   colorMode: MermaidColorMode,
   id: string,
+  signal?: AbortSignal,
 ): Promise<string> {
+  signal?.throwIfAborted()
   const mermaid = await loadMermaid()
+  signal?.throwIfAborted()
   mermaid.initialize(createMermaidConfig(colorMode))
   const { svg } = await mermaid.render(id, normalizeMermaidChart(chart))
+  signal?.throwIfAborted()
   return svg
 }
 
@@ -123,26 +136,43 @@ function normalizeFlowchartTrailingNote(line: string): string {
 }
 
 export function useMermaidColorMode(): MermaidColorMode {
-  const [colorMode, setColorMode] = useState(readMermaidColorMode)
+  return useSyncExternalStore(subscribeMermaidColorMode, readMermaidColorMode, () => "light")
+}
 
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)")
-    const updateColorMode = () => setColorMode(readMermaidColorMode())
-    const observer = new MutationObserver(updateColorMode)
+export function subscribeMermaidColorMode(subscriber: () => void): () => void {
+  colorModeSubscribers.add(subscriber)
+  if (stopColorModeObserver === null) {
+    stopColorModeObserver = startColorModeObserver()
+  }
 
-    observer.observe(document.documentElement, {
-      attributeFilter: ["data-theme"],
-      attributes: true,
-    })
-    media.addEventListener("change", updateColorMode)
-
-    return () => {
-      observer.disconnect()
-      media.removeEventListener("change", updateColorMode)
+  return () => {
+    colorModeSubscribers.delete(subscriber)
+    if (colorModeSubscribers.size === 0) {
+      stopColorModeObserver?.()
+      stopColorModeObserver = null
     }
-  }, [])
+  }
+}
 
-  return colorMode
+function startColorModeObserver(): () => void {
+  const media = window.matchMedia("(prefers-color-scheme: dark)")
+  const notifySubscribers = () => {
+    for (const subscriber of colorModeSubscribers) {
+      subscriber()
+    }
+  }
+  const observer = new MutationObserver(notifySubscribers)
+
+  observer.observe(document.documentElement, {
+    attributeFilter: ["data-theme"],
+    attributes: true,
+  })
+  media.addEventListener("change", notifySubscribers)
+
+  return () => {
+    observer.disconnect()
+    media.removeEventListener("change", notifySubscribers)
+  }
 }
 
 function readMermaidColorMode(): MermaidColorMode {

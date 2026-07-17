@@ -8,5 +8,8 @@
 - Use focused reading for Markdown and HTML previews, with desktop and mobile exit controls.
 - Restore deleted items for five seconds and preserve pinned metadata in workspace backups.
 - Use the localized quick guide, responsive sidebar controls, and compact toolbar overflow.
+- Clear every local workspace file and folder from Settings after an explicit confirmation, with a brief Undo window.
+- Release obsolete HTML iframes, Mermaid SVGs, search state, and asynchronous rendering work when switching documents.
+- Share one Mermaid theme observer across diagrams while keeping renderer and service-worker caches available offline.
 
 Full release: https://github.com/jaymunsh/mding-app/releases

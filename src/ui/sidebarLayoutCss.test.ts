@@ -19,3 +19,12 @@ describe("update history dialog text wrapping", () => {
     )
   })
 })
+
+describe("focused reading controls", () => {
+  it("keeps the exit control at the safe top-right and never condenses the document header", () => {
+    expect(appCss).toMatch(
+      /\.preview-focus-exit\s*{[^}]*top:\s*calc\(var\(--space-3\) \+ env\(safe-area-inset-top\)\);[^}]*right:\s*calc\(var\(--space-3\) \+ env\(safe-area-inset-right\)\);/s,
+    )
+    expect(appCss).not.toContain(".header-condensed")
+  })
+})

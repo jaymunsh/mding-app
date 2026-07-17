@@ -13,7 +13,6 @@ type HtmlPreviewProps = {
   readonly zoom: number
   readonly onReadingProgressChange: (documentId: string, ratio: number) => void
   readonly onSearchResultChange: (count: number, activeIndex: number) => void
-  readonly onScrollDirectionChange: (direction: "up" | "down") => void
 }
 
 type HtmlPreviewState = {
@@ -30,7 +29,6 @@ export function HtmlPreview({
   zoom,
   onReadingProgressChange,
   onSearchResultChange,
-  onScrollDirectionChange,
 }: HtmlPreviewProps) {
   const idPrefix = useStableHtmlPreviewId()
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -68,7 +66,7 @@ export function HtmlPreview({
   }, [searchIndex, searchQuery])
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     async function buildPreview(): Promise<void> {
       try {
@@ -78,12 +76,13 @@ export function HtmlPreview({
           idPrefix,
           latestZoomRef.current,
           latestReadingProgressRef.current,
+          controller.signal,
         )
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setPreview({ srcDoc })
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setPreview({
             srcDoc: createHtmlPreviewErrorDocument(
               colorMode,
@@ -99,7 +98,7 @@ export function HtmlPreview({
     void buildPreview()
 
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [appLanguage, colorMode, html, idPrefix])
 
@@ -118,10 +117,6 @@ export function HtmlPreview({
         onSearchResultChange(searchResult.count, searchResult.activeIndex)
         return
       }
-      const scrollDirection = parseHtmlScrollDirectionMessage(event.data)
-      if (scrollDirection !== null) {
-        onScrollDirectionChange(scrollDirection)
-      }
     }
 
     window.addEventListener("message", handleMessage)
@@ -132,7 +127,14 @@ export function HtmlPreview({
         onReadingProgressChange(documentId, finalRatio)
       }
     }
-  }, [documentId, onReadingProgressChange, onScrollDirectionChange, onSearchResultChange])
+  }, [documentId, onReadingProgressChange, onSearchResultChange])
+
+  useEffect(
+    () => () => {
+      disposeHtmlPreviewFrame(iframeRef.current)
+    },
+    [],
+  )
 
   return (
     <iframe
@@ -145,14 +147,19 @@ export function HtmlPreview({
   )
 }
 
-function parseHtmlScrollDirectionMessage(data: unknown): "up" | "down" | null {
-  if (typeof data !== "object" || data === null || !("type" in data) || !("direction" in data)) {
-    return null
+const EMPTY_HTML_PREVIEW = "<!doctype html><html><head></head><body></body></html>"
+
+type DisposableHtmlPreviewFrame = {
+  readonly contentWindow: Pick<Window, "stop"> | null
+  srcdoc: string
+}
+
+export function disposeHtmlPreviewFrame(frame: DisposableHtmlPreviewFrame | null): void {
+  if (frame === null) {
+    return
   }
-  if (data.type !== "mding:html-scroll-direction") {
-    return null
-  }
-  return data.direction === "up" || data.direction === "down" ? data.direction : null
+  frame.contentWindow?.stop()
+  frame.srcdoc = EMPTY_HTML_PREVIEW
 }
 
 export function parseHtmlReadingProgressMessage(data: unknown): number | null {
@@ -206,16 +213,19 @@ function readIframeReadingProgress(iframe: HTMLIFrameElement | null): number | n
   return clampRatio(frameWindow.scrollY / maxScrollTop)
 }
 
-async function createHtmlPreviewDocument(
+export async function createHtmlPreviewDocument(
   html: string,
   colorMode: MermaidColorMode,
   idPrefix: string,
   zoom: number,
   readingProgressRatio: number,
+  signal: AbortSignal,
 ): Promise<string> {
+  signal.throwIfAborted()
   const document = new DOMParser().parseFromString(html, "text/html")
   injectPreviewStyle(document, colorMode)
-  await renderMermaidBlocks(document, colorMode, idPrefix)
+  await renderMermaidBlocks(document, colorMode, idPrefix, signal)
+  signal.throwIfAborted()
   injectPreviewBridge(document, colorMode, zoom, readingProgressRatio)
   return `<!doctype html>${document.documentElement.outerHTML}`
 }
@@ -282,24 +292,26 @@ async function renderMermaidBlocks(
   document: Document,
   colorMode: MermaidColorMode,
   idPrefix: string,
+  signal: AbortSignal,
 ): Promise<void> {
   const elements = Array.from(
     document.querySelectorAll("pre.mermaid, div.mermaid, code.language-mermaid, code.lang-mermaid"),
   )
 
-  await Promise.all(
-    elements.map(async (element, index) => {
-      const chart = element.textContent ?? ""
-      const replacement = await createMermaidReplacement(
-        document,
-        chart,
-        colorMode,
-        idPrefix,
-        index,
-      )
-      mermaidReplaceTarget(element).replaceWith(replacement)
-    }),
-  )
+  for (const [index, element] of elements.entries()) {
+    signal.throwIfAborted()
+    const chart = element.textContent ?? ""
+    const replacement = await createMermaidReplacement(
+      document,
+      chart,
+      colorMode,
+      idPrefix,
+      index,
+      signal,
+    )
+    signal.throwIfAborted()
+    mermaidReplaceTarget(element).replaceWith(replacement)
+  }
 }
 
 async function createMermaidReplacement(
@@ -308,6 +320,7 @@ async function createMermaidReplacement(
   colorMode: MermaidColorMode,
   idPrefix: string,
   index: number,
+  signal: AbortSignal,
 ): Promise<HTMLElement> {
   try {
     const wrapper = document.createElement("div")
@@ -318,6 +331,7 @@ async function createMermaidReplacement(
       chart,
       colorMode,
       `${idPrefix}-${index}-${colorMode}`,
+      signal,
     )
     return wrapper
   } catch (error) {

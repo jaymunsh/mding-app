@@ -198,7 +198,7 @@ All spacing derives from 4px.
 - Animate only opacity and transform.
 - Respect `prefers-reduced-motion`.
 - Hover states must communicate affordance; no decorative motion.
-- On mobile document screens, scrolling down condenses the document header; scrolling up restores it.
+- On mobile document screens, the document header remains stable while scrolling so the filename and navigation controls stay available.
 
 ## 7. Depth & Surface
 

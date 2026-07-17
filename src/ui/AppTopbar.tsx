@@ -1,4 +1,4 @@
-import { History, Monitor, Moon, Settings, Sun } from "lucide-react"
+import { History, Monitor, Moon, Settings, Sun, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { APP_VERSION } from "../app/appVersion"
 import {
@@ -28,6 +28,8 @@ type AppTopbarProps = {
   readonly onExportWorkspace: () => void
   readonly onOpenHelp: () => void
   readonly onOpenUpdateHistory: () => void
+  readonly onClearWorkspace: () => void
+  readonly canClearWorkspace: boolean
 }
 
 export function AppTopbar({
@@ -47,6 +49,8 @@ export function AppTopbar({
   onExportWorkspace,
   onOpenHelp,
   onOpenUpdateHistory,
+  onClearWorkspace,
+  canClearWorkspace,
 }: AppTopbarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [shouldRestoreUpdateHistoryFocus, setShouldRestoreUpdateHistoryFocus] = useState(false)
@@ -185,6 +189,23 @@ export function AppTopbar({
                   {isUpdateHistoryUnseen ? (
                     <span className="settings-update-badge">{t("newUpdate")}</span>
                   ) : null}
+                </button>
+              </div>
+              <div className="settings-danger-zone">
+                <p>{t("clearWorkspaceHelp")}</p>
+                <button
+                  className="danger"
+                  type="button"
+                  disabled={!canClearWorkspace}
+                  onClick={() => {
+                    if (window.confirm(t("clearWorkspaceConfirm"))) {
+                      setIsSettingsOpen(false)
+                      onClearWorkspace()
+                    }
+                  }}
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  <span>{t("clearWorkspace")}</span>
                 </button>
               </div>
             </div>

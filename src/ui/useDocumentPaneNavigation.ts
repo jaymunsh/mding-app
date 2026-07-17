@@ -1,6 +1,5 @@
 import {
   type PointerEvent as ReactPointerEvent,
-  type UIEvent as ReactUIEvent,
   useCallback,
   useEffect,
   useRef,
@@ -32,13 +31,10 @@ type ActiveBackSwipe = {
 export type DocumentPaneNavigation = {
   readonly enterPreviewFocus: () => void
   readonly exitPreviewFocus: () => void
-  readonly isHeaderCondensed: boolean
   readonly isPreviewFocus: boolean
   readonly cancelBackSwipe: () => void
   readonly handlePointerDown: (event: ReactPointerEvent<HTMLElement>) => void
   readonly handlePointerUp: (event: ReactPointerEvent<HTMLElement>) => void
-  readonly handleScrollCapture: (event: ReactUIEvent<HTMLElement>) => void
-  readonly handleHtmlScrollDirection: (direction: "up" | "down") => void
 }
 
 export function canEnterPreviewFocus(request: PreviewFocusRequest): boolean {
@@ -54,10 +50,8 @@ export function shouldExitPreviewFocusFromKeyboard(key: string): boolean {
 }
 
 export function useDocumentPaneNavigation(request: NavigationRequest): DocumentPaneNavigation {
-  const [isHeaderCondensed, setIsHeaderCondensed] = useState(false)
   const [isPreviewFocus, setIsPreviewFocus] = useState(false)
   const activeBackSwipeRef = useRef<ActiveBackSwipe | null>(null)
-  const lastScrollTopRef = useRef(0)
 
   const exitPreviewFocus = useCallback(() => {
     if (!isPreviewFocus) {
@@ -113,23 +107,9 @@ export function useDocumentPaneNavigation(request: NavigationRequest): DocumentP
     }
   }, [exitPreviewFocus, isPreviewFocus, request])
 
-  function updateHeaderForScroll(scrollTop: number): void {
-    if (!window.matchMedia("(max-width: 759px)").matches) {
-      return
-    }
-    const delta = scrollTop - lastScrollTopRef.current
-    if (scrollTop <= 8 || delta < -12) {
-      setIsHeaderCondensed(false)
-    } else if (delta > 12 && scrollTop > 48) {
-      setIsHeaderCondensed(true)
-    }
-    lastScrollTopRef.current = scrollTop
-  }
-
   return {
     enterPreviewFocus,
     exitPreviewFocus,
-    isHeaderCondensed,
     isPreviewFocus,
     cancelBackSwipe: () => {
       activeBackSwipeRef.current = null
@@ -176,11 +156,5 @@ export function useDocumentPaneNavigation(request: NavigationRequest): DocumentP
         request.onBack()
       }
     },
-    handleScrollCapture: (event) => {
-      if (event.target instanceof HTMLElement) {
-        updateHeaderForScroll(event.target.scrollTop)
-      }
-    },
-    handleHtmlScrollDirection: (direction) => setIsHeaderCondensed(direction === "down"),
   }
 }

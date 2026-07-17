@@ -400,6 +400,29 @@ img.brand-mark {
   font-weight: 500;
 }
 
+.settings-danger-zone {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings-danger-zone p {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-danger-zone button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+}
+
 .settings-update-history {
   display: inline-flex;
   min-height: 32px;
@@ -1059,6 +1082,15 @@ img.brand-mark {
   border-top: 1px solid var(--border-subtle);
 }
 
+.pinned-section {
+  border-bottom: 2px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 3%, transparent);
+}
+
+.pinned-section + .tree-section {
+  border-top: 0;
+}
+
 .tree-section-heading {
   margin: 0;
   padding: var(--space-3) var(--space-2) var(--space-2);
@@ -1096,7 +1128,7 @@ img.brand-mark {
 }
 
 .tree-row.file-row {
-  padding-right: 48px;
+  padding-right: 0;
 }
 
 .manage-mode .tree-row {
@@ -1221,44 +1253,11 @@ img.brand-mark {
 .tree-row-progress {
   position: absolute;
   top: 50%;
-  right: 44px;
+  right: var(--space-3);
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   transform: translateY(-50%);
-}
-
-.tree-row-pin-control {
-  position: absolute;
-  top: 50%;
-  right: var(--space-2);
-  z-index: 1;
-  display: inline-grid;
-  width: 28px;
-  min-width: 28px;
-  min-height: 28px;
-  padding: 0;
-  place-items: center;
-  color: var(--text-tertiary);
-  border-color: transparent;
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-50%);
-}
-
-.tree-row-shell:hover .tree-row-pin-control,
-.tree-row-shell:focus-within .tree-row-pin-control,
-.tree-row-pin-control.pinned {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.tree-row-pin-control:hover:not(:disabled),
-.tree-row-pin-control[aria-pressed="true"] {
-  color: var(--accent-primary);
-  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
-  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .tree-row.selected {
@@ -1296,7 +1295,21 @@ img.brand-mark {
 }
 
 .move-target-bar button {
+  display: inline-flex;
   flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 var(--space-2);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.move-target-bar button svg,
+.rename-form button svg,
+.tree-actions button svg {
+  flex: 0 0 auto;
 }
 
 .tree-status {
@@ -1326,6 +1339,14 @@ img.brand-mark {
   border-radius: 8px;
   color: var(--text-primary);
   background: var(--surface-inset);
+}
+
+.rename-form button,
+.tree-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .tree-actions {
@@ -1990,20 +2011,6 @@ details.markdown-callout > summary::marker {
     display: none;
   }
 
-  .header-condensed .document-header {
-    padding-top: calc(var(--space-1) + env(safe-area-inset-top));
-    padding-bottom: var(--space-1);
-  }
-
-  .header-condensed .document-title-copy {
-    display: none;
-  }
-
-  .header-condensed .document-back,
-  .header-condensed .document-actions button {
-    min-height: 30px;
-  }
-
   .document-actions {
     width: auto;
     min-width: 0;
@@ -2097,16 +2104,15 @@ details.markdown-callout > summary::marker {
   position: fixed;
   z-index: 100;
   top: calc(var(--space-3) + env(safe-area-inset-top));
-  left: 50%;
+  right: calc(var(--space-3) + env(safe-area-inset-right));
   display: grid;
   width: 32px;
   min-width: 32px;
   min-height: 32px;
   padding: 0;
   place-items: center;
-  transform: translateX(-50%);
   border-color: color-mix(in srgb, var(--border-default) 88%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
   box-shadow: 0 2px 10px color-mix(in srgb, var(--text-primary) 16%, transparent);
 }
 
