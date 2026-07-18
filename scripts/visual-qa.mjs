@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { chromium } from "playwright"
 
 const baseUrl = process.env.PWA_BASE_URL ?? "http://127.0.0.1:4173/"
-const evidenceDir = process.env.PWA_EVIDENCE_DIR ?? "docs/verification/pwa-screenshots"
+const evidenceDir = process.env.PWA_EVIDENCE_DIR ?? ".omo/evidence/pwa-screenshots"
 const guideCopy = {
   en: {
     guide: "Guide",

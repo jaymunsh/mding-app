@@ -10,3 +10,6 @@ coverage/
 playwright-report/
 test-results/
 archive/
+.debug-journal.md
+docs/superpowers/
+docs/verification/
