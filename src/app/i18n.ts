@@ -88,7 +88,7 @@ const englishMessages = {
   helpWrite1: "Create folders and Markdown files from the top toolbar.",
   helpWrite2: "Open a Markdown file to preview it, then use Edit to change the source.",
   helpWrite3:
-    "Manage mode supports multi-select move and delete. On desktop, drag files into folders; deleted items can be restored for 5 seconds.",
+    "Manage mode supports multi-select move and confirmed delete. On desktop, drag files into folders; deleted items can be restored for 5 seconds.",
   helpWriteTitle: "Write",
   importBackup: "Import backup",
   importDocumentAria: "Import Markdown or HTML files",
@@ -148,7 +148,7 @@ const englishMessages = {
   clearWorkspace: "Clear workspace",
   clearWorkspaceHelp: "Delete every local file and folder. App settings are kept.",
   clearWorkspaceConfirm:
-    "Delete every file and folder in this workspace? You can undo briefly after deletion.",
+    "Delete every file and folder in this workspace? You can undo for 5 seconds after deletion.",
   system: "System",
   theme: "Theme",
   tryAgain: "Try again",
@@ -249,7 +249,7 @@ const koreanMessages = {
   helpWrite1: "상단 도구막대에서 폴더와 Markdown 파일을 만들 수 있습니다.",
   helpWrite2: "Markdown 파일을 열어 미리보고, 편집 버튼으로 원문을 수정합니다.",
   helpWrite3:
-    "관리 모드에서 여러 항목을 선택해 이동·삭제할 수 있습니다. 데스크톱에서는 파일을 폴더로 끌어 옮길 수 있고, 삭제 후 5초 동안 되돌릴 수 있습니다.",
+    "관리 모드에서 여러 항목을 선택해 이동하거나 확인 후 삭제할 수 있습니다. 데스크톱에서는 파일을 폴더로 끌어 옮길 수 있고, 삭제 후 5초 동안 되돌릴 수 있습니다.",
   helpWriteTitle: "작성",
   importBackup: "백업 가져오기",
   importDocumentAria: "Markdown 또는 HTML 파일 가져오기",
@@ -309,7 +309,7 @@ const koreanMessages = {
   clearWorkspace: "전체 파일 지우기",
   clearWorkspaceHelp: "로컬 파일과 폴더를 모두 삭제합니다. 앱 설정은 유지됩니다.",
   clearWorkspaceConfirm:
-    "이 작업공간의 모든 파일과 폴더를 삭제할까요? 삭제 직후 잠시 실행 취소할 수 있습니다.",
+    "이 작업공간의 모든 파일과 폴더를 삭제할까요? 삭제 후 5초 동안 실행 취소할 수 있습니다.",
   system: "시스템",
   theme: "테마",
   tryAgain: "다시 시도",

@@ -347,7 +347,14 @@ export function FileTree({ appLanguage, workspace, onCollapseSidebar }: FileTree
             className="danger"
             type="button"
             disabled={managedSelectionCount === 0}
-            onClick={() => void workspace.deleteNodes(managedSelectionIds).then(resetManageMode)}
+            onClick={() => {
+              if (
+                !window.confirm(deleteSelectionConfirmation(appLanguage, managedSelectionCount))
+              ) {
+                return
+              }
+              void workspace.deleteNodes(managedSelectionIds).then(resetManageMode)
+            }}
             aria-label={translate(appLanguage, "delete")}
           >
             <Trash2 size={15} aria-hidden="true" />
@@ -397,4 +404,10 @@ function moveFeedbackLabel(language: AppLanguage, destination: MoveDestination):
     default:
       return assertNever(destination)
   }
+}
+
+function deleteSelectionConfirmation(language: AppLanguage, count: number): string {
+  return language === "ko"
+    ? `선택한 ${count}개 항목을 삭제할까요? 삭제 후 5초 동안 실행 취소할 수 있습니다.`
+    : `Delete ${count} selected ${count === 1 ? "item" : "items"}? You can undo for 5 seconds.`
 }

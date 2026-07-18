@@ -11,21 +11,41 @@ export type ReleaseNote = {
 const currentEnglishRelease = {
   version: APP_VERSION,
   date: "2026-07-18",
+  summary: "Safer deletion and clearer pinned shortcuts refine the workspace.",
+  highlights: [
+    "Confirm selected-item and full-workspace deletion before local data is removed.",
+    "Restore deleted items for five seconds with the existing Undo action.",
+    "Distinguish the pinned section with stronger color and divider contrast.",
+  ],
+} as const satisfies ReleaseNote
+
+const currentKoreanRelease = {
+  version: APP_VERSION,
+  date: "2026-07-18",
+  summary: "더 안전한 삭제와 선명한 고정 영역으로 작업공간을 다듬었습니다.",
+  highlights: [
+    "선택 항목과 전체 작업공간을 삭제하기 전에 확인합니다.",
+    "기존 실행 취소 기능으로 삭제한 항목을 5초 동안 복구할 수 있습니다.",
+    "더 진한 배경과 구분선으로 고정 영역을 명확하게 표시합니다.",
+  ],
+} as const satisfies ReleaseNote
+
+const english160Release = {
+  version: "v1.6.0",
+  date: "2026-07-18",
   summary: "A more capable local workspace with pinned shortcuts and focused reading.",
   highlights: [
     "Select files in Manage and pin them as shortcuts without moving their originals.",
     "Create named Markdown files and folders with validation and automatic `.md` completion.",
     "Drag files to folders or the root with clear destination feedback and success-only move confirmation.",
     "Use preview-only Focus reading for Markdown and HTML with desktop and mobile exit paths.",
-    "Clear the local workspace from Settings after confirmation, with a brief Undo window.",
+    "Clear the local workspace from Settings after confirmation, with a five-second Undo window.",
     "Release obsolete iframes, Mermaid SVGs, search state, and asynchronous preview work when switching documents.",
-    "Restore deleted items with Undo and keep pinned metadata in backups.",
-    "Use the bilingual Quick Guide, responsive sidebar controls, and compact toolbar overflow on smaller screens.",
   ],
 } as const satisfies ReleaseNote
 
-const currentKoreanRelease = {
-  version: APP_VERSION,
+const korean160Release = {
+  version: "v1.6.0",
   date: "2026-07-18",
   summary: "고정 바로가기와 집중 읽기를 더한 로컬 작업공간입니다.",
   highlights: [
@@ -33,15 +53,14 @@ const currentKoreanRelease = {
     "이름을 검증하고 `.md`를 자동 완성해 Markdown 파일과 폴더를 만들 수 있습니다.",
     "폴더나 루트에 파일을 끌어 놓으면 대상을 표시하고, 이동 성공 시에만 확인합니다.",
     "Markdown과 HTML 미리보기에서 데스크톱과 모바일에서 집중 읽기를 종료할 수 있습니다.",
-    "설정에서 확인 후 작업공간 전체를 지우고, 삭제 직후 실행 취소할 수 있습니다.",
+    "설정에서 확인 후 작업공간 전체를 지우고, 5초 동안 실행 취소할 수 있습니다.",
     "문서 전환 시 이전 iframe, Mermaid SVG, 검색 상태와 비동기 렌더링 작업을 정리합니다.",
-    "삭제 후 실행 취소할 수 있고, 백업에 고정 메타데이터도 보존합니다.",
-    "한영 빠른 가이드, 반응형 사이드바 조작, 좁은 화면용 도구 모음을 제공합니다.",
   ],
 } as const satisfies ReleaseNote
 
 const englishReleaseHistory = [
   currentEnglishRelease,
+  english160Release,
   {
     version: "v1.5.0",
     date: "2026-07-05",
@@ -75,6 +94,7 @@ const englishReleaseHistory = [
 
 const koreanReleaseHistory = [
   currentKoreanRelease,
+  korean160Release,
   {
     version: "v1.5.0",
     date: "2026-07-05",

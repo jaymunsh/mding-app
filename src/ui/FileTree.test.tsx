@@ -13,6 +13,7 @@ const roots: Root[] = []
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllGlobals()
   for (const root of roots.splice(0)) {
     act(() => root.unmount())
   }
@@ -142,6 +143,41 @@ describe("FileTree internal drag movement feedback", () => {
   })
 })
 
+describe("FileTree deletion confirmation", () => {
+  it("deletes selected items only after confirmation", async () => {
+    // Given
+    const fileNode = file("Draft.md", null, 1)
+    const deleteNodes = vi.fn<WorkspaceController["deleteNodes"]>(async () => {})
+    const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true)
+    vi.stubGlobal("confirm", confirm)
+    const container = renderTree(createWorkspace([fileNode], { deleteNodes }))
+    const manageButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Manage",
+    )
+    act(() => manageButton?.click())
+    act(() => findRow(container, "Draft.md").click())
+    const deleteButton = container.querySelector<HTMLButtonElement>(
+      '.manage-context-bar button[aria-label="Delete"]',
+    )
+    if (deleteButton === null) {
+      throw new Error("Missing managed deletion button")
+    }
+
+    // When
+    act(() => deleteButton.click())
+
+    // Then
+    expect(deleteNodes).not.toHaveBeenCalled()
+    expect(confirm).toHaveBeenCalledWith("Delete 1 selected item? You can undo for 5 seconds.")
+
+    await act(async () => {
+      deleteButton.click()
+      await Promise.resolve()
+    })
+    expect(deleteNodes).toHaveBeenCalledWith([fileNode.id])
+  })
+})
+
 function renderTree(workspace: WorkspaceController): HTMLElement {
   const container = document.createElement("div")
   document.body.append(container)
@@ -188,7 +224,9 @@ function dispatchDrag(element: HTMLElement, type: string, dataTransfer: TestData
 
 function createWorkspace(
   nodes: readonly WorkspaceNode[],
-  overrides: Partial<Pick<WorkspaceController, "moveNodesToRoot" | "moveNodesToFolder">> = {},
+  overrides: Partial<
+    Pick<WorkspaceController, "deleteNodes" | "moveNodesToRoot" | "moveNodesToFolder">
+  > = {},
 ): WorkspaceController {
   return {
     nodes,
@@ -214,7 +252,7 @@ function createWorkspace(
     createFolder: vi.fn(async () => ({ kind: "success" }) satisfies MutationOutcome),
     renameSelected: vi.fn(async () => {}),
     deleteSelected: vi.fn(async () => {}),
-    deleteNodes: vi.fn(async () => {}),
+    deleteNodes: overrides.deleteNodes ?? vi.fn(async () => {}),
     dismissPendingDeletion: vi.fn(),
     undoPendingDeletion: vi.fn(async () => {}),
     setFilePinned: vi.fn(async () => ({ kind: "success" }) satisfies MutationOutcome),

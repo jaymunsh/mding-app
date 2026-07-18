@@ -5,7 +5,11 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createNodeId, NodeKind, type WorkspaceNode } from "../domain/workspace"
 import type { WorkspaceRepository } from "../storage/workspaceRepository"
-import { useWorkspaceController, type WorkspaceController } from "./workspaceController"
+import {
+  DELETION_UNDO_DURATION_MS,
+  useWorkspaceController,
+  type WorkspaceController,
+} from "./workspaceController"
 
 const mocks = vi.hoisted(() => ({
   repository: null as WorkspaceRepository | null,
@@ -31,6 +35,10 @@ afterEach(() => {
 })
 
 describe("workspace controller mutation outcomes", () => {
+  it("keeps deleted items available for undo for five seconds", () => {
+    expect(DELETION_UNDO_DURATION_MS).toBe(5_000)
+  })
+
   it("returns an error outcome without changing the selected workspace when creation rejects", async () => {
     // Given
     const selectedFolder = folder("Notes")

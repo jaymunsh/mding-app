@@ -1083,8 +1083,8 @@ img.brand-mark {
 }
 
 .pinned-section {
-  border-bottom: 2px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-default));
-  background: color-mix(in srgb, var(--accent-primary) 3%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent-primary) 52%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 9%, var(--surface-primary));
 }
 
 .pinned-section + .tree-section {
@@ -1099,6 +1099,10 @@ img.brand-mark {
   font-weight: 650;
   line-height: 1.35;
   text-transform: uppercase;
+}
+
+.pinned-section .tree-section-heading {
+  color: var(--accent-primary);
 }
 
 .tree-row-shell {

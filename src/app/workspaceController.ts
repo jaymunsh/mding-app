@@ -74,6 +74,8 @@ export type WorkspaceController = {
   readonly clearError: () => void
 }
 
+export const DELETION_UNDO_DURATION_MS = 5_000
+
 export function useWorkspaceController(): WorkspaceController {
   const [state, setState] = useState(() => ({
     ...initialState,
@@ -91,7 +93,7 @@ export function useWorkspaceController(): WorkspaceController {
     if (pendingDeletion === null) {
       return
     }
-    const timeout = window.setTimeout(() => setPendingDeletion(null), 5000)
+    const timeout = window.setTimeout(() => setPendingDeletion(null), DELETION_UNDO_DURATION_MS)
     return () => window.clearTimeout(timeout)
   }, [pendingDeletion])
 

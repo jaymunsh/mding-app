@@ -20,7 +20,7 @@ After the first successful online load, the app shell and built assets are cache
 - Create, rename, delete, and organize Markdown files and folders in an app-local workspace.
 - Pin Markdown files as shortcuts while keeping their original folder location.
 - Move files by multi-select or desktop drag and drop, with restore support after deletion.
-- Clear the local workspace from Settings after confirmation, with a brief Undo window.
+- Clear the local workspace from Settings after confirmation, with a five-second Undo window.
 - Preview Markdown, switch to source editing, and save locally.
 - Use focused reading for Markdown and HTML previews on desktop and mobile.
 - Import `.md`, `.markdown`, `.html`, and `.htm` files into the workspace.
