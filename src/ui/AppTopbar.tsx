@@ -1,6 +1,7 @@
-import { History, Monitor, Moon, Settings, Sun, Trash2 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { ExternalLink, Monitor, Moon, Settings, Sun, Trash2 } from "lucide-react"
+import { useState } from "react"
 import { APP_VERSION } from "../app/appVersion"
+import { changelogUrl } from "../app/changelogLinks"
 import {
   type AppLanguage,
   formatBackupTime,
@@ -17,7 +18,6 @@ type AppTopbarProps = {
   readonly storagePersisted: boolean
   readonly lastBackupAt: number | null
   readonly themePreference: ThemePreference
-  readonly isUpdateHistoryOpen: boolean
   readonly isUpdateHistoryUnseen: boolean
   readonly onLanguagePreferenceChange: (preference: LanguagePreference) => void
   readonly onThemePreferenceChange: (preference: ThemePreference) => void
@@ -38,7 +38,6 @@ export function AppTopbar({
   storagePersisted,
   lastBackupAt,
   themePreference,
-  isUpdateHistoryOpen,
   isUpdateHistoryUnseen,
   onLanguagePreferenceChange,
   onThemePreferenceChange,
@@ -53,26 +52,7 @@ export function AppTopbar({
   canClearWorkspace,
 }: AppTopbarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [shouldRestoreUpdateHistoryFocus, setShouldRestoreUpdateHistoryFocus] = useState(false)
-  const updateHistoryTriggerRef = useRef<HTMLButtonElement>(null)
   const t = (key: Parameters<typeof translate>[1]) => translate(appLanguage, key)
-
-  useEffect(() => {
-    if (isUpdateHistoryOpen || !shouldRestoreUpdateHistoryFocus) {
-      return
-    }
-
-    setIsSettingsOpen(true)
-  }, [isUpdateHistoryOpen, shouldRestoreUpdateHistoryFocus])
-
-  useEffect(() => {
-    if (isUpdateHistoryOpen || !shouldRestoreUpdateHistoryFocus || !isSettingsOpen) {
-      return
-    }
-
-    updateHistoryTriggerRef.current?.focus()
-    setShouldRestoreUpdateHistoryFocus(false)
-  }, [isSettingsOpen, isUpdateHistoryOpen, shouldRestoreUpdateHistoryFocus])
 
   return (
     <header className="topbar">
@@ -173,23 +153,23 @@ export function AppTopbar({
                 <span>
                   {t("lastBackup")}: {formatBackupTime(lastBackupAt, appLanguage)}
                 </span>
-                <button
-                  ref={updateHistoryTriggerRef}
+                <a
                   className="settings-update-history"
-                  type="button"
+                  href={changelogUrl(appLanguage)}
+                  target="_blank"
+                  rel="noopener noreferrer external"
                   onClick={() => {
                     setIsSettingsOpen(false)
-                    setShouldRestoreUpdateHistoryFocus(true)
                     onOpenUpdateHistory()
                   }}
                   aria-label={t("updateHistory")}
                 >
-                  <History size={15} aria-hidden="true" />
+                  <ExternalLink size={15} aria-hidden="true" />
                   <span>{APP_VERSION}</span>
                   {isUpdateHistoryUnseen ? (
                     <span className="settings-update-badge">{t("newUpdate")}</span>
                   ) : null}
-                </button>
+                </a>
               </div>
               <div className="settings-danger-zone">
                 <p>{t("clearWorkspaceHelp")}</p>

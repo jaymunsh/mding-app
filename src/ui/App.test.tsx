@@ -76,15 +76,6 @@ vi.mock("./DocumentPane", () => ({ DocumentPane: () => null }))
 vi.mock("./FileTree", () => ({ FileTree: () => null }))
 vi.mock("./HelpDialog", () => ({ HelpDialog: () => null }))
 vi.mock("./UndoToast", () => ({ UndoToast: () => null }))
-vi.mock("./UpdateHistoryDialog", () => ({
-  UpdateHistoryDialog: ({ onClose }: { readonly onClose: () => void }) => (
-    <div role="dialog" aria-label="release-notes-test">
-      <button type="button" onClick={onClose}>
-        Close release notes
-      </button>
-    </div>
-  ),
-}))
 vi.mock("./useSidebarLayout", () => ({
   useSidebarLayout: () => mocks.sidebar,
 }))
@@ -193,16 +184,19 @@ describe("App creation actions", () => {
 })
 
 describe("App update history", () => {
-  it("marks the current release seen when update history opens", () => {
+  it("opens the English GitHub changelog externally and marks the release seen", () => {
     const container = renderApp()
 
     act(() => findButton(container, "Settings").click())
-    const updateHistory = findButton(container, "Update history")
+    const updateHistory = findLink(container, "Update history")
     expect(updateHistory.querySelector(".settings-update-badge")).not.toBeNull()
+    expect(updateHistory.href).toBe("https://github.com/jaymunsh/mding-app/blob/main/CHANGELOG.md")
+    expect(updateHistory.target).toBe("_blank")
+    expect(updateHistory.rel).toContain("noopener")
+    expect(updateHistory.rel).toContain("noreferrer")
 
-    act(() => updateHistory.click())
+    act(() => updateHistory.dispatchEvent(new MouseEvent("click", { bubbles: true })))
 
-    expect(container.querySelector('[aria-label="release-notes-test"]')).not.toBeNull()
     expect(localStorage.getItem(LAST_SEEN_VERSION_STORAGE_KEY)).toBe(APP_VERSION)
   })
 
@@ -212,46 +206,7 @@ describe("App update history", () => {
 
     act(() => findButton(container, "Settings").click())
 
-    expect(
-      findButton(container, "Update history").querySelector(".settings-update-badge"),
-    ).toBeNull()
-  })
-
-  it("reopens Settings and restores focus to a new trigger after history closes", async () => {
-    // Given
-    const container = renderApp()
-    act(() => findButton(container, "Settings").click())
-    const originalTrigger = findButton(container, "Update history")
-
-    // When
-    act(() => {
-      originalTrigger.focus()
-      originalTrigger.click()
-    })
-
-    // Then
-    expect(originalTrigger.isConnected).toBe(false)
-    expect(container.querySelectorAll('[role="dialog"]').length).toBe(1)
-
-    const closeHistory = container.querySelector<HTMLButtonElement>(
-      '[aria-label="release-notes-test"] button',
-    )
-    if (closeHistory === null) {
-      throw new Error("Missing update history close button")
-    }
-
-    // When
-    act(() => closeHistory.click())
-    await act(async () => {
-      await Promise.resolve()
-    })
-
-    // Then
-    const restoredTrigger = findButton(container, "Update history")
-    expect(restoredTrigger).not.toBe(originalTrigger)
-    expect(findButton(container, "Settings").getAttribute("aria-expanded")).toBe("true")
-    expect(container.querySelectorAll('[role="dialog"]').length).toBe(1)
-    expect(document.activeElement).toBe(restoredTrigger)
+    expect(findLink(container, "Update history").querySelector(".settings-update-badge")).toBeNull()
   })
 })
 
@@ -272,6 +227,14 @@ function findButton(container: HTMLElement, label: string): HTMLButtonElement {
     throw new Error(`Missing button: ${label}`)
   }
   return button
+}
+
+function findLink(container: HTMLElement, label: string): HTMLAnchorElement {
+  const link = container.querySelector(`a[aria-label="${label}"]`)
+  if (!(link instanceof HTMLAnchorElement)) {
+    throw new Error(`Missing link: ${label}`)
+  }
+  return link
 }
 
 function closeDialog(container: HTMLElement): void {

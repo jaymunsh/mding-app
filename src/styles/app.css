@@ -430,6 +430,19 @@ img.brand-mark {
   justify-content: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.settings-update-history:hover {
+  color: var(--accent-primary);
+}
+
+.settings-update-history:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .settings-update-badge {
@@ -439,98 +452,6 @@ img.brand-mark {
   background: var(--accent-primary);
   font-size: 10px;
   font-weight: 700;
-}
-
-.update-history-overlay {
-  z-index: 110;
-}
-
-.update-history-dialog {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: min(680px, calc(100vw - var(--space-8)));
-  max-height: min(760px, calc(100vh - var(--space-8)));
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  background: var(--surface-elevated);
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 18%, transparent);
-}
-
-.update-history-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-bottom: 1px solid var(--border-default);
-}
-
-.update-history-header h2,
-.update-history-header p,
-.update-history-release h3,
-.update-history-release h4,
-.update-history-release p {
-  margin: 0;
-}
-
-.update-history-header p {
-  margin-top: var(--space-1);
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.update-history-content {
-  overflow-y: auto;
-  padding: 0 var(--space-5);
-}
-
-.update-history-release {
-  padding: var(--space-5) 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.update-history-release-heading,
-.update-history-release-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.update-history-release-title {
-  justify-content: flex-start;
-}
-
-.update-history-release-title span {
-  color: var(--accent-primary);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.update-history-release time,
-.update-history-summary {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.update-history-summary {
-  margin-top: var(--space-3);
-}
-
-.update-history-release h4 {
-  margin-top: var(--space-4);
-  font-size: 12px;
-}
-
-.update-history-release ul {
-  margin: var(--space-2) 0 0;
-  padding-left: 20px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
 }
 
 .app-version {
@@ -2127,9 +2048,4 @@ details.markdown-callout > summary::marker {
     scroll-behavior: auto;
     transition-duration: 1ms;
   }
-}
-
-.update-history-dialog {
-  word-break: keep-all;
-  overflow-wrap: anywhere;
 }

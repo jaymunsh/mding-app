@@ -45,7 +45,8 @@ mding은 호스팅형 노트 서비스가 아니라, 작고 개인적인 로컬 
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
-- [CHANGELOG.md](CHANGELOG.md)
+- [CHANGELOG.ko.md](CHANGELOG.ko.md)
+- [English changelog](CHANGELOG.md)
 - [Open Source Operations](docs/open-source-operations.md)
 - [오픈소스 운영 가이드](docs/open-source-operations.ko.md)
 

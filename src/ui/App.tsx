@@ -28,7 +28,6 @@ import { DocumentPane } from "./DocumentPane"
 import { FileTree } from "./FileTree"
 import { HelpDialog } from "./HelpDialog"
 import { UndoToast } from "./UndoToast"
-import { UpdateHistoryDialog } from "./UpdateHistoryDialog"
 import { useSidebarLayout } from "./useSidebarLayout"
 
 type WorkspaceFrameStyle = CSSProperties & {
@@ -43,7 +42,6 @@ export function App() {
   const [themePreference, setThemePreference] = useState(readThemePreference)
   const [languagePreference, setLanguagePreference] = useState(readLanguagePreference)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
-  const [isUpdateHistoryOpen, setIsUpdateHistoryOpen] = useState(false)
   const [hasUnseenUpdate, setHasUnseenUpdate] = useState(() => isUpdateHistoryUnseen(APP_VERSION))
   const [isCreateFileOpen, setIsCreateFileOpen] = useState(false)
   const [createDialogKind, setCreateDialogKind] = useState<CreateDialogKindType>(
@@ -93,7 +91,6 @@ export function App() {
   function openUpdateHistory(): void {
     markUpdateHistorySeen(APP_VERSION)
     setHasUnseenUpdate(false)
-    setIsUpdateHistoryOpen(true)
   }
 
   function submitCreate(): void {
@@ -177,7 +174,6 @@ export function App() {
         languagePreference={languagePreference}
         storagePersisted={workspace.storagePersisted}
         themePreference={themePreference}
-        isUpdateHistoryOpen={isUpdateHistoryOpen}
         isUpdateHistoryUnseen={hasUnseenUpdate}
         onLanguagePreferenceChange={setLanguagePreference}
         onThemePreferenceChange={setThemePreference}
@@ -284,12 +280,6 @@ export function App() {
       />
       {isHelpOpen ? (
         <HelpDialog appLanguage={appLanguage} onClose={() => setIsHelpOpen(false)} />
-      ) : null}
-      {isUpdateHistoryOpen ? (
-        <UpdateHistoryDialog
-          appLanguage={appLanguage}
-          onClose={() => setIsUpdateHistoryOpen(false)}
-        />
       ) : null}
       {isCreateFileOpen ? (
         <CreateFileDialog

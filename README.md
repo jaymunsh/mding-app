@@ -46,6 +46,7 @@ For contribution and maintenance details, see:
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
 - [CHANGELOG.md](CHANGELOG.md)
+- [한국어 변경 로그](CHANGELOG.ko.md)
 - [Open Source Operations](docs/open-source-operations.md)
 - [오픈소스 운영 가이드](docs/open-source-operations.ko.md)
 

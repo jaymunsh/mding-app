@@ -12,14 +12,6 @@ describe("sidebar grid placement", () => {
   })
 })
 
-describe("update history dialog text wrapping", () => {
-  it("keeps Korean words together with safe overflow fallback", () => {
-    expect(appCss).toMatch(
-      /\.update-history-dialog\s*{[^}]*word-break:\s*keep-all;[^}]*overflow-wrap:\s*anywhere;/s,
-    )
-  })
-})
-
 describe("focused reading controls", () => {
   it("keeps the exit control at the safe top-right and never condenses the document header", () => {
     expect(appCss).toMatch(
